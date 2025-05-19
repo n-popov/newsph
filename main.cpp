@@ -9,43 +9,43 @@
 #include "utils/common.h"
 #include "utils/helpers.h"
 #include "utils/physics.h"
+#include "utils/gemini_helpers.h"
 
-// Simulation parameters
 double max_time = 1e-6;
 double dt = 1e-8;
 
-// Material properties - Aluminum (plate)
-const double ro1 = 2700.0;     // reference density
-const double C1 = 5328.0;      // reference sound speed
-const double S1 = 1.338;       // Particle-shock velocity slope
-const double gamma1 = 2.0;     // Gruneisen parameter
-const double G1 = 2.76e7;      // Shear Modulus
-const double Yo1 = 0.3e6;      // Yield stress
+// Aluminum
+const double ro1 = 2700.0;     
+const double C1 = 5328.0;      
+const double S1 = 1.338;       
+const double gamma1 = 2.0;     
+const double G1 = 2.76e7;      
+const double Yo1 = 0.3e6;      
 const double E1 = ro1 * C1 * C1;
 const double cs1 = std::sqrt(E1/ro1);
 
-// Material properties - Steel (projectile)
-const double ro2 = 7900;       // reference density
-const double C2 = 4600.0;      // reference sound speed
-const double S2 = 1.490;       // Particle-shock velocity slope
-const double gamma2 = 2.0;     // Gruneisen parameter
-const double G2 = 0.530e7;     // Shear Modulus
-const double Yo2 = 0.979e6;    // Yield stress
+// Steel
+const double ro2 = 7900;       
+const double C2 = 4600.0;      
+const double S2 = 1.490;       
+const double gamma2 = 2.0;     
+const double G2 = 0.530e7;     
+const double Yo2 = 0.979e6;    
 const double E2 = ro2 * C2 * C2;
 const double cs2 = std::sqrt(E2/ro2);
 
 // SPH parameters
-const double hdx = 1.3;        // h/dx ratio
-const double dx = 0.0001 * 2.5;     // particle spacing
+const double hdx = 1.3;
+const double dx = 0.0001 * 2.5;     
 const double h = dx * hdx;
-const double avisc_alpha = 1.0;// artificial viscosity parameter
-const double avisc_beta = 1.5; // artificial viscosity parameter
-const double avisc_eta = 0.1;  // artificial viscosity small denominator fix
-const double xsph_eps = 0.5;   // XSPH correction strength
+const double avisc_alpha = 1.0;
+const double avisc_beta = 1.5; 
+const double avisc_eta = 0.1;  
+const double xsph_eps = 0.5;   
 
 // Projectile parameters
-const double r = 0.001;        // projectile radius
-const double v_s = 2200.0;     // projectile velocity
+const double r = 0.001;        
+const double v_s = 2200.0;     
 
 // Function to create projectile particles (sphere) - reduced resolution
 std::vector<mysph::Particle<double>> create_projectile() {
@@ -65,11 +65,11 @@ std::vector<mysph::Particle<double>> create_projectile() {
                     p.m = test_dx * test_dx * test_dx * ro2;
                     p.rho = p.rho0 = ro2;
                     p.cs = cs2;
-                    p.material = 1; // projectile
+                    p.material = 1; 
                     p.G = G2;
                     p.Yo = Yo2;
                     p.k = E2;
-                    p.nu = 0.3; // Poisson ratio for steel
+                    p.nu = 0.3; // Poisson ratio 
                     particles.push_back(p);
                 }
             }
@@ -80,16 +80,14 @@ std::vector<mysph::Particle<double>> create_projectile() {
     return particles;
 }
 
-// Function to create plate particles (rectangular block) - reduced resolution
+
 std::vector<mysph::Particle<double>> create_plate() {
     std::vector<mysph::Particle<double>> particles;
     
-    // Smaller plate dimensions
-    const double plate_length = 0.005;    // Reduced from 0.025
-    const double plate_width = 0.005;     // Reduced from 0.03
+    const double plate_length = 0.005;    // 0.025
+    const double plate_width = 0.005;     // 0.03
     const double plate_thickness = 0.0005; // 0.0025
     
-    // Use a larger particle spacing for testing
     double test_dx = dx;
     
     for (double x = 0; x <= plate_thickness; x += test_dx) {
@@ -101,11 +99,11 @@ std::vector<mysph::Particle<double>> create_plate() {
                 p.m = test_dx * test_dx * test_dx * ro1;
                 p.rho = p.rho0 = ro1;
                 p.cs = cs1;
-                p.material = 0; // plate
+                p.material = 0; 
                 p.G = G1;
                 p.Yo = Yo1;
                 p.k = E1;
-                p.nu = 0.33; // Poisson ratio for aluminum
+                p.nu = 0.33; // Poisson ratio 
                 particles.push_back(p);
             }
         }
@@ -113,27 +111,6 @@ std::vector<mysph::Particle<double>> create_plate() {
     
     std::cout << "Created " << particles.size() << " plate particles\n";
     return particles;
-}
-
-// Von Mises plasticity model
-void apply_von_mises_plasticity(mysph::Particle<double>& p) {
-    // Calculate stress deviator second invariant J2
-    p.J2 = 0.5 * (p.s00*p.s00 + p.s11*p.s11 + p.s22*p.s22 + 
-                   2*(p.s01*p.s01 + p.s02*p.s02 + p.s12*p.s12));
-    
-    // Check yield criterion
-    if (p.J2 > (p.Yo * p.Yo / 3.0)) {
-        // Calculate yield factor
-        double yield_factor = p.Yo / (std::sqrt(3.0 * p.J2));
-        
-        // Scale down deviatoric stress components
-        p.s00 *= yield_factor;
-        p.s01 *= yield_factor;
-        p.s02 *= yield_factor;
-        p.s11 *= yield_factor;
-        p.s12 *= yield_factor;
-        p.s22 *= yield_factor;
-    }
 }
 
 // Stiffened Gas EOS
@@ -195,7 +172,6 @@ int main() {
     particles.insert(particles.end(), projectile_particles.begin(), projectile_particles.end());
     particles.insert(particles.end(), plate_particles.begin(), plate_particles.end());
     
-    // Time stepping
     int step = 0;
     double time = 0.0;
     
@@ -204,10 +180,8 @@ int main() {
     while (time < max_time) {
         std::cout << "Step " << step << ", Time: " << time << " s\n";
         
-        // Copy particles for integration
         auto next_particles = particles;
         
-        // Density calculation (SPH summation)
         for (size_t i = 0; i < particles.size(); i++) {
             particles[i].rho = 0.0;
             
@@ -222,7 +196,6 @@ int main() {
             write_particles_vtk(vtk_filename, particles);
         }
         
-        // Create neighbor lists for each particle
         std::vector<std::vector<mysph::Particle<double>>> neighbors(particles.size());
         for (size_t i = 0; i < particles.size(); i++) {
             for (size_t j = 0; j < particles.size(); j++) {
@@ -232,27 +205,22 @@ int main() {
             }
         }
         
-        // Compute velocity gradients
         for (size_t i = 0; i < particles.size(); i++) {
             compute_velocity_gradient(particles, i, neighbors[i], h);
         }
         
-        // Update pressure using EOS
         for (auto& p : particles) {
-            // compute_pressure(p);
             compute_eos_stiffened_gas(p, gamma1, C1, ro1, gamma2, C2, ro2);
         }
         
-        // Update stress state
         for (auto& p : particles) {
-            compute_stress_rate(p, dt);
+            // compute_stress_rate(p, dt);
+            compute_stress_rate_and_artificial_terms(p, dt, 0.1);
         }
         
-        // Compute acceleration (forces)
         for (size_t i = 0; i < particles.size(); i++) {
             auto& pi = particles[i];
             
-            // Initialize force and viscous force
             pi.F = {0.0, 0.0, 0.0};
             pi.Fv = {0.0, 0.0, 0.0};
             
@@ -261,62 +229,146 @@ int main() {
                 auto vij = pi.v - pj.v;
                 double r = mysph::abs(rij);
                 
-                if (r > 0) {
-                    auto eij = rij * (1.0/r);
-                    auto grad_k = mysph::grad_kernel(rij, h);
+                // if (r > 0) {
+                //     auto eij = rij * (1.0/r);
+                //     auto grad_k = mysph::grad_kernel(rij, h);
                     
-                    // Artificial viscosity term
-                    double dot_prod = vij[0]*rij[0] + vij[1]*rij[1] + vij[2]*rij[2];
-                    double mu_ij = 0.0;
+                //     double dot_prod = vij[0]*rij[0] + vij[1]*rij[1] + vij[2]*rij[2];
+                //     double mu_ij = 0.0;
                     
-                    if (dot_prod < 0) {
-                        double c_ij = 0.5 * (pi.cs + pj.cs);
-                        mu_ij = h * dot_prod / (r*r + avisc_eta*h*h);
-                        double pi_ij = (-avisc_alpha * mu_ij * c_ij + avisc_beta * mu_ij * mu_ij) / 
-                                    (0.5 * (pi.rho + pj.rho));
+                //     if (dot_prod < 0) {
+                //         double c_ij = 0.5 * (pi.cs + pj.cs);
+                //         mu_ij = h * dot_prod / (r*r + avisc_eta*h*h);
+                //         double pi_ij = (-avisc_alpha * mu_ij * c_ij + avisc_beta * mu_ij * mu_ij) / 
+                //                     (0.5 * (pi.rho + pj.rho));
                         
-                        // Viscous force contribution
-                        pi.Fv = pi.Fv - grad_k * (pj.m * pi_ij);
+                //         pi.Fv = pi.Fv - grad_k * (pj.m * pi_ij);
+                //     }
+                    
+                //     double stress_term_i[3] = {
+                //         (pi.s00 - pi.p) * grad_k[0] + pi.s01 * grad_k[1] + pi.s02 * grad_k[2],
+                //         pi.s01 * grad_k[0] + (pi.s11 - pi.p) * grad_k[1] + pi.s12 * grad_k[2],
+                //         pi.s02 * grad_k[0] + pi.s12 * grad_k[1] + (pi.s22 - pi.p) * grad_k[2]
+                //     };
+                    
+                //     double stress_term_j[3] = {
+                //         (pj.s00 - pj.p) * grad_k[0] + pj.s01 * grad_k[1] + pj.s02 * grad_k[2],
+                //         pj.s01 * grad_k[0] + (pj.s11 - pj.p) * grad_k[1] + pj.s12 * grad_k[2],
+                //         pj.s02 * grad_k[0] + pj.s12 * grad_k[1] + (pj.s22 - pj.p) * grad_k[2]
+                //     };
+                    
+                //     double density_factor_i = pj.m / (pi.rho * pi.rho);
+                //     double density_factor_j = pj.m / (pj.rho * pj.rho);
+                    
+                //     pi.F[0] -= density_factor_i * stress_term_i[0] + density_factor_j * stress_term_j[0];
+                //     pi.F[1] -= density_factor_i * stress_term_i[1] + density_factor_j * stress_term_j[1];
+                //     pi.F[2] -= density_factor_i * stress_term_i[2] + density_factor_j * stress_term_j[2];
+                // }
+
+                // Gemini
+                
+                double r_dist = mysph::abs(rij);
+
+                if (r_dist > 1e-9 * h) {
+                    mysph::vector3d DWIJ = mysph::grad_kernel(rij, h);
+                    double WIJ = mysph::kernel(rij, h);
+
+                    double pa = pi.p;
+                    double pb = pj.p;
+                    double rhoa = pi.rho;
+                    double rhob = pj.rho;
+
+                    double rhoa21 = 1.0 / (rhoa * rhoa);
+                    double rhob21 = 1.0 / (rhob * rhob);
+
+                    double s00a_dev = pi.s00; double s01a_dev = pi.s01; double s02a_dev = pi.s02;
+                    double s11a_dev = pi.s11; double s12a_dev = pi.s12;
+                    double s22a_dev = pi.s22;
+
+                    double s00b_dev = pj.s00; double s01b_dev = pj.s01; double s02b_dev = pj.s02;
+                    double s11b_dev = pj.s11; double s12b_dev = pj.s12;
+                    double s22b_dev = pj.s22;
+
+                    double sigma00a = s00a_dev - pa; double sigma01a = s01a_dev;       double sigma02a = s02a_dev;
+                    double sigma10a = s01a_dev;       double sigma11a = s11a_dev - pa; double sigma12a = s12a_dev;
+                    double sigma20a = s02a_dev;       double sigma21a = s12a_dev;       double sigma22a = s22a_dev - pa;
+
+                    double sigma00b = s00b_dev - pb; double sigma01b = s01b_dev;       double sigma02b = s02b_dev;
+                    double sigma10b = s01b_dev;       double sigma11b = s11b_dev - pb; double sigma12b = s12b_dev;
+                    double sigma20b = s02b_dev;       double sigma21b = s12b_dev;       double sigma22b = s22b_dev - pb;
+
+                    double r00_ab = pi.as00 + pj.as00; double r01_ab = pi.as01 + pj.as01; double r02_ab = pi.as02 + pj.as02;
+                    double r11_ab = pi.as11 + pj.as11; double r12_ab = pi.as12 + pj.as12;
+                    double r22_ab = pi.as22 + pj.as22;
+
+                    double fab_pow_n = 0.0;
+                    double art_stress00 = 0.0, art_stress01 = 0.0, art_stress02 = 0.0;
+                    double art_stress11 = 0.0, art_stress12 = 0.0;
+                    double art_stress22 = 0.0;
+
+                    auto wdeltap = mysph::kernel(mysph::vector3d{r, r, r}, h);
+                    auto n_art_stress = 2;
+
+                    if (wdeltap > 1e-9) {
+                        double fab = WIJ / wdeltap;
+                        fab_pow_n = std::pow(fab, n_art_stress);
+
+                        art_stress00 = fab_pow_n * r00_ab;
+                        art_stress01 = fab_pow_n * r01_ab;
+                        art_stress02 = fab_pow_n * r02_ab;
+                        art_stress11 = fab_pow_n * r11_ab;
+                        art_stress12 = fab_pow_n * r12_ab;
+                        art_stress22 = fab_pow_n * r22_ab;
                     }
-                    
-                    // Stress tensor force
-                    double stress_term_i[3] = {
-                        (pi.s00 + pi.p) * grad_k[0] + pi.s01 * grad_k[1] + pi.s02 * grad_k[2],
-                        pi.s01 * grad_k[0] + (pi.s11 + pi.p) * grad_k[1] + pi.s12 * grad_k[2],
-                        pi.s02 * grad_k[0] + pi.s12 * grad_k[1] + (pi.s22 + pi.p) * grad_k[2]
-                    };
-                    
-                    double stress_term_j[3] = {
-                        (pj.s00 + pj.p) * grad_k[0] + pj.s01 * grad_k[1] + pj.s02 * grad_k[2],
-                        pj.s01 * grad_k[0] + (pj.s11 + pj.p) * grad_k[1] + pj.s12 * grad_k[2],
-                        pj.s02 * grad_k[0] + pj.s12 * grad_k[1] + (pj.s22 + pj.p) * grad_k[2]
-                    };
-                    
-                    // Total force contribution
-                    double density_factor_i = pj.m / (pi.rho * pi.rho);
-                    double density_factor_j = pj.m / (pj.rho * pj.rho);
-                    
-                    pi.F[0] -= density_factor_i * stress_term_i[0] + density_factor_j * stress_term_j[0];
-                    pi.F[1] -= density_factor_i * stress_term_i[1] + density_factor_j * stress_term_j[1];
-                    pi.F[2] -= density_factor_i * stress_term_i[2] + density_factor_j * stress_term_j[2];
-                }
+
+                    double mb = pj.m;
+                    double ma = pi.m; // Mass of the current particle pi
+
+                    // Calculate the acceleration contribution from this neighbor pj
+                    // This is the term: m_b * (stress_term) * DWIJ
+                    // Let's call it acc_contrib_vec
+                    mysph::vector3d acc_contrib_vec;
+
+                    double term_xx = (sigma00a * rhoa21 + sigma00b * rhob21 + art_stress00);
+                    double term_xy = (sigma01a * rhoa21 + sigma01b * rhob21 + art_stress01);
+                    double term_xz = (sigma02a * rhoa21 + sigma02b * rhob21 + art_stress02);
+                    acc_contrib_vec[0] = mb * (term_xx * DWIJ[0] + term_xy * DWIJ[1] + term_xz * DWIJ[2]);
+
+                    double term_yx = (sigma10a * rhoa21 + sigma10b * rhob21 + art_stress01);
+                    double term_yy = (sigma11a * rhoa21 + sigma11b * rhob21 + art_stress11);
+                    double term_yz = (sigma12a * rhoa21 + sigma12b * rhob21 + art_stress12);
+                    acc_contrib_vec[1] = mb * (term_yx * DWIJ[0] + term_yy * DWIJ[1] + term_yz * DWIJ[2]);
+
+                    double term_zx = (sigma20a * rhoa21 + sigma20b * rhob21 + art_stress02);
+                    double term_zy = (sigma21a * rhoa21 + sigma21b * rhob21 + art_stress12);
+                    double term_zz = (sigma22a * rhoa21 + sigma22b * rhob21 + art_stress22);
+                    acc_contrib_vec[2] = mb * (term_zx * DWIJ[0] + term_zy * DWIJ[1] + term_zz * DWIJ[2]);
+
+                    // Now, the force contribution from this neighbor is ma * acc_contrib_vec
+                    pi.F[0] += ma * acc_contrib_vec[0];
+                    pi.F[1] += ma * acc_contrib_vec[1];
+                    pi.F[2] += ma * acc_contrib_vec[2];
+
+                } // end if (r_dist > 0)
+
+                
+                
+                // auto den = pj.rho * mysph::abs(rij);
+                // if (den == 0) continue;
+                // pi.Fv = pi.Fv - (pi.v - pj.v) * (pj.m * 2 * mysph::abs(mysph::grad_kernel(rij, h)) / (den));
+                // pi.F = pi.F - mysph::grad_kernel(rij, h) * (pj.m * (pi.p / std::pow(pi.rho, 2) + pj.p / std::pow(pj.rho, 2)));
             }
         }
         
-        // Integrate (update velocity and position)
         for (size_t i = 0; i < particles.size(); i++) {
-            // V splitted (velocity update with viscous force)
-            // next_particles[i].v = particles[i].v + (particles[i].Fv) * (dt / particles[i].m);
-            
-            // Final velocity update with total force
-            // next_particles[i].v = next_particles[i].vstar + particles[i].F * (dt / particles[i].m);
+            // next_particles[i].v = particles[i].v + (particles[i].Fv) * (dt / particles[i].m); 
             // next_particles[i].v = next_particles[i].v + particles[i].F * (dt / particles[i].m);
+            next_particles[i].v = particles[i].v + particles[i].F * (dt / particles[i].m);
             
-            // Position update
             next_particles[i].r = particles[i].r + next_particles[i].v * dt;
         }
         
-        // XSPH correction
+        // XSPH 
         for (size_t i = 0; i < particles.size(); i++) {
             mysph::vec3<double> xsph_correction = {0.0, 0.0, 0.0};
             
@@ -337,16 +389,12 @@ int main() {
             next_particles[i].r[2] += xsph_eps * xsph_correction[2] * dt;
         }
         
-        // Update particles
         particles = next_particles;
 
-        // Write output
         if (step % 1 == 0) {
-            // VTK file for visualization
             std::string vtk_filename = "output/impact-" + std::to_string(step + 1) + ".vtp";
             write_particles_vtk(vtk_filename, particles);
 
-            //Human-readable file for evaluation
             std::string eval_filename = "output/eval-" + std::to_string(step) + ".txt";
             write_full_particle_data(eval_filename, particles, time, step);
         }

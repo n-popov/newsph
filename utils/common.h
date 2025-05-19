@@ -6,6 +6,8 @@
 
 namespace mysph {
 
+using vector3d = std::array<double, 3>;
+
 template<typename T, size_t N>
 std::array<T, N> operator+(const std::array<T, N>& lhs, const std::array<T, N>& rhs) {
     std::array<T, N> result;

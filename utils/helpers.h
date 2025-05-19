@@ -1,6 +1,13 @@
+#pragma once
+
 #include <fstream>
 #include <iomanip>
 #include <set>
+#include <vector>
+#include <cmath>
+#include <algorithm> // For std::swap and std::abs
+#include <iostream>  // For potential debugging
+#include <iomanip>   // For formatting output
 
 #include "particle.h"
 
