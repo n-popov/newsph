@@ -11,7 +11,7 @@
 #include "utils/physics.h"
 #include "utils/gemini_helpers.h"
 
-double max_time = 1e-6;
+double max_time = 2e-6;
 double dt = 1e-8;
 
 // Aluminum
@@ -36,7 +36,7 @@ const double cs2 = std::sqrt(E2/ro2);
 
 // SPH parameters
 const double hdx = 1.3;
-const double dx = 0.0001 * 2.5;     
+const double dx = 0.0001 * 1.5;     
 const double h = dx * hdx;
 const double avisc_alpha = 1.0;
 const double avisc_beta = 1.5; 
@@ -60,7 +60,7 @@ std::vector<mysph::Particle<double>> create_projectile() {
                 double d = x*x + y*y + z*z;
                 if (d <= r*r) {
                     mysph::Particle<double> p;
-                    p.r = {x - (r + 3 * test_dx), y + r, z};
+                    p.r = {x - (r + test_dx), y + r, z};
                     p.v = {v_s, 0.0, 0.0};
                     p.m = test_dx * test_dx * test_dx * ro2;
                     p.rho = p.rho0 = ro2;
@@ -265,7 +265,7 @@ int main() {
                 //     pi.F[2] -= density_factor_i * stress_term_i[2] + density_factor_j * stress_term_j[2];
                 // }
 
-                // Gemini
+                // new impl
                 
                 double r_dist = mysph::abs(rij);
 
@@ -322,11 +322,7 @@ int main() {
                     }
 
                     double mb = pj.m;
-                    double ma = pi.m; // Mass of the current particle pi
-
-                    // Calculate the acceleration contribution from this neighbor pj
-                    // This is the term: m_b * (stress_term) * DWIJ
-                    // Let's call it acc_contrib_vec
+                    double ma = pi.m; 
                     mysph::vector3d acc_contrib_vec;
 
                     double term_xx = (sigma00a * rhoa21 + sigma00b * rhob21 + art_stress00);
