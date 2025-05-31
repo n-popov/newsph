@@ -36,7 +36,7 @@ const double cs2 = std::sqrt(E2/ro2);
 
 // SPH parameters
 const double hdx = 1.3;
-const double dx = 0.0001 * 1.5;     
+const double dx = 0.0001 * 2;     
 const double h = dx * hdx;
 const double avisc_alpha = 1.0;
 const double avisc_beta = 1.5; 
@@ -217,12 +217,15 @@ int main() {
             // compute_stress_rate(p, dt);
             compute_stress_rate_and_artificial_terms(p, dt, 0.1);
         }
+
+        for (size_t i = 0; i < particles.size(); i++) {
+            compute_artificial_viscosity(particles[i], neighbors[i], h, avisc_alpha, avisc_beta, avisc_eta);
+        }
         
         for (size_t i = 0; i < particles.size(); i++) {
             auto& pi = particles[i];
             
             pi.F = {0.0, 0.0, 0.0};
-            pi.Fv = {0.0, 0.0, 0.0};
             
             for (auto& pj : neighbors[i]) {
                 auto rij = pi.r - pj.r;
@@ -311,9 +314,7 @@ int main() {
         
         // forces
         for (size_t i = 0; i < particles.size(); i++) {
-            // next_particles[i].v = particles[i].v + (particles[i].Fv) * (dt / particles[i].m); 
-            // next_particles[i].v = next_particles[i].v + particles[i].F * (dt / particles[i].m);
-            particles[i].v = particles[i].v + particles[i].F * (dt / particles[i].m);
+            particles[i].v = particles[i].v + (particles[i].F) * (dt / particles[i].m);
         }
 
 

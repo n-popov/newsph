@@ -60,4 +60,14 @@ std::array<T, N> normalize(const std::array<T, N>& v) {
     return v / length;
 }
 
+template<typename T>
+T operator*(const std::array<T, 3>& lhs, const std::array<T, 3>& rhs) {
+    return std::inner_product(std::begin(lhs), std::end(lhs), std::begin(rhs), T(0));
+}
+
+template<typename T>
+std::array<T, 3> operator*(T val, const std::array<T, 3> arr) {
+    return arr * val;
+}
+
 }
