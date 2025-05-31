@@ -141,47 +141,7 @@ std::vector<mysph::Particle<double>> create_plate() {
     return particles;
 }
 
-// Stiffened Gas EOS
-void compute_pressure(mysph::Particle<double>& p) {
-    double gamma, c0, rho0;
-    
-    if (p.material == 0) { // plate
-        gamma = aluminum_props.gruneisen_gamma;
-        c0 = aluminum_props.sound_speed_coefficient;
-        rho0 = aluminum_props.density;
-    } else { // projectile
-        gamma = steel_props.gruneisen_gamma;
-        c0 = steel_props.sound_speed_coefficient;
-        rho0 = steel_props.density;
-    }
-    
-    // Stiffened gas EOS: p = (gamma-1)*rho*e - gamma*p0
-    double eta = p.rho / rho0;
-    p.p = rho0 * c0 * c0 * (eta - 1) * (1 + (gamma - 1)/2 * (eta - 1));
-}
 
-// Hooke's law for deviatoric stress rate
-void compute_stress_rate(mysph::Particle<double>& p, double dt) {
-    // Calculate deviatoric strain rate
-    double div_v = p.v00 + p.v11 + p.v22;
-    double eps00 = p.v00 - div_v/3.0;
-    double eps01 = 0.5 * (p.v01 + p.v10);
-    double eps02 = 0.5 * (p.v02 + p.v20);
-    double eps11 = p.v11 - div_v/3.0;
-    double eps12 = 0.5 * (p.v12 + p.v21);
-    double eps22 = p.v22 - div_v/3.0;
-    
-    // Update deviatoric stress using Hooke's law
-    p.s00 += 2 * p.G * eps00 * dt;
-    p.s01 += 2 * p.G * eps01 * dt;
-    p.s02 += 2 * p.G * eps02 * dt;
-    p.s11 += 2 * p.G * eps11 * dt;
-    p.s12 += 2 * p.G * eps12 * dt;
-    p.s22 += 2 * p.G * eps22 * dt;
-    
-    // Apply plasticity
-    apply_von_mises_plasticity(p);
-}
 
 int main(int argc, char* argv[]) {
     // Load configuration
@@ -276,7 +236,6 @@ int main(int argc, char* argv[]) {
             compute_artificial_viscosity(particles[i], neighbors[i], h, avisc_alpha, avisc_beta, avisc_eta);
         }
         
-        // [Rest of the simulation loop remains the same...]
         for (size_t i = 0; i < particles.size(); i++) {
             auto& pi = particles[i];
             
@@ -367,7 +326,7 @@ int main(int argc, char* argv[]) {
         
         // forces
         for (size_t i = 0; i < particles.size(); i++) {
-            particles[i].v = particles[i].v + (particles[i].F) * (dt / particles[i].m);
+            particles[i].v = particles[i].v + (particles[i].F + particles[i].Fv) * (dt / particles[i].m);
         }
 
         // correction
@@ -379,8 +338,6 @@ int main(int argc, char* argv[]) {
         for (size_t i = 0; i < particles.size(); i++) {
             next_particles[i].r = particles[i].r + next_particles[i].v * dt;
         }
-        
-        particles = next_particles;
 
         if (step % output_frequency == 0) {
             std::string vtk_filename = "output/impact-" + std::to_string(step + 1) + ".vtp";
@@ -389,6 +346,8 @@ int main(int argc, char* argv[]) {
             std::string eval_filename = "output/eval-" + std::to_string(step) + ".txt";
             write_full_particle_data(eval_filename, particles, time, step);
         }
+
+        particles = next_particles;
         
         time += dt;
         step++;
