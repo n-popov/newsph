@@ -9,9 +9,9 @@
 #include "utils/common.h"
 #include "utils/helpers.h"
 #include "utils/physics.h"
-#include "utils/gemini_helpers.h"
+#include "utils/sph.h"
 
-double max_time = 2e-6;
+double max_time = 1e-6;
 double dt = 1e-8;
 
 // Aluminum
@@ -228,48 +228,8 @@ int main() {
                 auto rij = pi.r - pj.r;
                 auto vij = pi.v - pj.v;
                 double r = mysph::abs(rij);
-                
-                // if (r > 0) {
-                //     auto eij = rij * (1.0/r);
-                //     auto grad_k = mysph::grad_kernel(rij, h);
-                    
-                //     double dot_prod = vij[0]*rij[0] + vij[1]*rij[1] + vij[2]*rij[2];
-                //     double mu_ij = 0.0;
-                    
-                //     if (dot_prod < 0) {
-                //         double c_ij = 0.5 * (pi.cs + pj.cs);
-                //         mu_ij = h * dot_prod / (r*r + avisc_eta*h*h);
-                //         double pi_ij = (-avisc_alpha * mu_ij * c_ij + avisc_beta * mu_ij * mu_ij) / 
-                //                     (0.5 * (pi.rho + pj.rho));
-                        
-                //         pi.Fv = pi.Fv - grad_k * (pj.m * pi_ij);
-                //     }
-                    
-                //     double stress_term_i[3] = {
-                //         (pi.s00 - pi.p) * grad_k[0] + pi.s01 * grad_k[1] + pi.s02 * grad_k[2],
-                //         pi.s01 * grad_k[0] + (pi.s11 - pi.p) * grad_k[1] + pi.s12 * grad_k[2],
-                //         pi.s02 * grad_k[0] + pi.s12 * grad_k[1] + (pi.s22 - pi.p) * grad_k[2]
-                //     };
-                    
-                //     double stress_term_j[3] = {
-                //         (pj.s00 - pj.p) * grad_k[0] + pj.s01 * grad_k[1] + pj.s02 * grad_k[2],
-                //         pj.s01 * grad_k[0] + (pj.s11 - pj.p) * grad_k[1] + pj.s12 * grad_k[2],
-                //         pj.s02 * grad_k[0] + pj.s12 * grad_k[1] + (pj.s22 - pj.p) * grad_k[2]
-                //     };
-                    
-                //     double density_factor_i = pj.m / (pi.rho * pi.rho);
-                //     double density_factor_j = pj.m / (pj.rho * pj.rho);
-                    
-                //     pi.F[0] -= density_factor_i * stress_term_i[0] + density_factor_j * stress_term_j[0];
-                //     pi.F[1] -= density_factor_i * stress_term_i[1] + density_factor_j * stress_term_j[1];
-                //     pi.F[2] -= density_factor_i * stress_term_i[2] + density_factor_j * stress_term_j[2];
-                // }
 
-                // new impl
-                
-                double r_dist = mysph::abs(rij);
-
-                if (r_dist > 1e-9 * h) {
+                if (r > 1e-9 * h) {
                     mysph::vector3d DWIJ = mysph::grad_kernel(rij, h);
                     double WIJ = mysph::kernel(rij, h);
 
@@ -346,43 +306,25 @@ int main() {
                     pi.F[2] += ma * acc_contrib_vec[2];
 
                 } // end if (r_dist > 0)
-
-                
-                
-                // auto den = pj.rho * mysph::abs(rij);
-                // if (den == 0) continue;
-                // pi.Fv = pi.Fv - (pi.v - pj.v) * (pj.m * 2 * mysph::abs(mysph::grad_kernel(rij, h)) / (den));
-                // pi.F = pi.F - mysph::grad_kernel(rij, h) * (pj.m * (pi.p / std::pow(pi.rho, 2) + pj.p / std::pow(pj.rho, 2)));
             }
         }
         
+        // forces
         for (size_t i = 0; i < particles.size(); i++) {
             // next_particles[i].v = particles[i].v + (particles[i].Fv) * (dt / particles[i].m); 
             // next_particles[i].v = next_particles[i].v + particles[i].F * (dt / particles[i].m);
-            next_particles[i].v = particles[i].v + particles[i].F * (dt / particles[i].m);
-            
-            next_particles[i].r = particles[i].r + next_particles[i].v * dt;
+            particles[i].v = particles[i].v + particles[i].F * (dt / particles[i].m);
         }
-        
-        // XSPH 
+
+
+        // correction
         for (size_t i = 0; i < particles.size(); i++) {
-            mysph::vec3<double> xsph_correction = {0.0, 0.0, 0.0};
-            
-            for (auto& pj : neighbors[i]) {
-                auto rij = particles[i].r - pj.r;
-                auto vij = pj.v - particles[i].v;
-                
-                double w = mysph::kernel(rij, h);
-                double weight = 2.0 * pj.m / (particles[i].rho + pj.rho) * w;
-                
-                xsph_correction[0] += weight * vij[0];
-                xsph_correction[1] += weight * vij[1];
-                xsph_correction[2] += weight * vij[2];
-            }
-            
-            next_particles[i].r[0] += xsph_eps * xsph_correction[0] * dt;
-            next_particles[i].r[1] += xsph_eps * xsph_correction[1] * dt;
-            next_particles[i].r[2] += xsph_eps * xsph_correction[2] * dt;
+            next_particles[i].v = particles[i].v + compute_xsph_corrected_velocities(particles[i], neighbors[i], h, xsph_eps);
+        }
+
+        // compute next
+        for (size_t i = 0; i < particles.size(); i++) {
+            next_particles[i].r = particles[i].r + next_particles[i].v * dt;
         }
         
         particles = next_particles;
