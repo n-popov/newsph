@@ -5,16 +5,6 @@
 #include "../config/simulation_config.h"
 #include "../utils/helpers.h"
 
-const config::MaterialProperties& get_material_properties(const mysph::Particle<double>& particle, const config::SimulationConfig& config) {
-    if (particle.material == 0) {
-        return config.aluminum_props;
-    } else if (particle.material == 1) {
-        return config.steel_props;
-    }
-
-    throw std::runtime_error("unknown material of particle");
-}
-
 void compute_eos_stiffened_gas(
     mysph::Particle<double>& particle,
     const config::SimulationConfig& config
@@ -47,24 +37,15 @@ void compute_velocity_gradient(mysph::Particle<double>& pi,
     }
 }
 
-// Von Mises plasticity model
 void apply_von_mises_plasticity(mysph::Particle<double>& p) {
-    // Calculate stress deviator second invariant J2
-    p.J2 = 0.5 * (p.s00*p.s00 + p.s11*p.s11 + p.s22*p.s22 + 
-                   2*(p.s01*p.s01 + p.s02*p.s02 + p.s12*p.s12));
+    // Stress deviator second invariant J2
+    p.J2 = 0.5 * (p.stress * p.stress);
     
-    // Check yield criterion
+    // Yield criterion
     if (p.J2 > (p.Yo * p.Yo / 3.0)) {
-        // Calculate yield factor
         double yield_factor = p.Yo / (std::sqrt(3.0 * p.J2));
-        
-        // Scale down deviatoric stress components
-        p.s00 *= yield_factor;
-        p.s01 *= yield_factor;
-        p.s02 *= yield_factor;
-        p.s11 *= yield_factor;
-        p.s12 *= yield_factor;
-        p.s22 *= yield_factor;
+
+        p.stress = p.stress * yield_factor;
     }
 }
 
@@ -83,9 +64,9 @@ void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) 
 
     // Construct total stress tensor S = s_dev - p * I
     // Assuming p.pressure is positive for compression
-    S[0][0] = p.s00 - p.p; S[0][1] = p.s01;        S[0][2] = p.s02;
-    S[1][0] = p.s01;        S[1][1] = p.s11 - p.p; S[1][2] = p.s12;
-    S[2][0] = p.s02;        S[2][1] = p.s12;        S[2][2] = p.s22 - p.p;
+    S[0][0] = p.stress[0] - p.p;  S[0][1] = p.stress[1];        S[0][2] = p.stress[2];
+    S[1][0] = p.stress[3];        S[1][1] = p.stress[4] - p.p;  S[1][2] = p.stress[5];
+    S[2][0] = p.stress[6];        S[2][1] = p.stress[7];        S[2][2] = p.stress[8] - p.p;
 
     // Compute the principal stresses and eigenvectors
     auto [R_mat, V] = eigen_decomposition_3x3(S); // Fills R_mat - eigenvectors (columns) and V – eigenvalues, principal stresses
@@ -107,27 +88,13 @@ void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) 
     p.as22 = Rab[2][2];
 }
 
-
-// Modified compute_stress_rate
 void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double dt, double artificial_stress_eps) {
-    // Calculate deviatoric strain rate
-    double div_v = p.v_grad[0] + p.v_grad[4] + p.v_grad[8];
-    double eps00 = p.v_grad[0] - div_v/3.0;
-    double eps01 = 0.5 * (p.v_grad[1] + p.v_grad[3]);
-    double eps02 = 0.5 * (p.v_grad[2] + p.v_grad[6]);
-    double eps11 = p.v_grad[4] - div_v/3.0;
-    double eps12 = 0.5 * (p.v_grad[5] + p.v_grad[7]);
-    double eps22 = p.v_grad[8] - div_v/3.0;
+    // Deviatoric strain rate
+    auto strain_rate = 0.5 * (p.v_grad + transpose(p.v_grad)) - (div(p.v_grad) / 3.) * mysph::SINGILAR9;
 
-    // Update deviatoric stress using Hooke's law (elastic trial stress)
-    p.s00 += 2 * p.G * eps00 * dt;
-    p.s01 += 2 * p.G * eps01 * dt;
-    p.s02 += 2 * p.G * eps02 * dt;
-    p.s11 += 2 * p.G * eps11 * dt;
-    p.s12 += 2 * p.G * eps12 * dt;
-    p.s22 += 2 * p.G * eps22 * dt;
+    // Hooke's law (elastic trial stress)
+    p.stress = (2 * p.G * dt) * strain_rate;
 
-    // Apply plasticity (modifies p.s00, p.s01, etc.)
     apply_von_mises_plasticity(p);
 
     // Compute Monaghan Artificial Stress based on the updated deviatoric stresses and current pressure
@@ -160,13 +127,13 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
             double rhoa21 = 1.0 / (rhoa * rhoa);
             double rhob21 = 1.0 / (rhob * rhob);
 
-            double s00a_dev = pi.s00; double s01a_dev = pi.s01; double s02a_dev = pi.s02;
-            double s11a_dev = pi.s11; double s12a_dev = pi.s12;
-            double s22a_dev = pi.s22;
+            double s00a_dev = pi.stress[0]; double s01a_dev = pi.stress[1]; double s02a_dev = pi.stress[2];
+            double s11a_dev = pi.stress[4]; double s12a_dev = pi.stress[5];
+            double s22a_dev = pi.stress[8];
 
-            double s00b_dev = pj.s00; double s01b_dev = pj.s01; double s02b_dev = pj.s02;
-            double s11b_dev = pj.s11; double s12b_dev = pj.s12;
-            double s22b_dev = pj.s22;
+            double s00b_dev = pj.stress[0]; double s01b_dev = pj.stress[1]; double s02b_dev = pj.stress[2];
+            double s11b_dev = pj.stress[4]; double s12b_dev = pj.stress[5];
+            double s22b_dev = pj.stress[8];
 
             double sigma00a = s00a_dev - pa; double sigma01a = s01a_dev;       double sigma02a = s02a_dev;
             double sigma10a = s01a_dev;       double sigma11a = s11a_dev - pa; double sigma12a = s12a_dev;

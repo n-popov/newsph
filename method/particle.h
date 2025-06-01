@@ -45,9 +45,7 @@ struct Particle {
     T Yo = T(0);         // yield stress
     
     // Stress tensor components (3D)
-    T s00 = T(0), s01 = T(0), s02 = T(0);
-    T s10 = T(0), s11 = T(0), s12 = T(0);
-    T s20 = T(0), s21 = T(0), s22 = T(0);
+    vec9<T> stress;
     
     // Velocity gradient tensor
     vec9<T> v_grad = {};

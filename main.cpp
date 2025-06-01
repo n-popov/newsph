@@ -90,13 +90,13 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+
+        for (auto& p : particles) {
+            compute_eos_stiffened_gas(p, config);
+        }
         
         for (size_t i = 0; i < particles.size(); i++) {
             compute_velocity_gradient(particles[i], neighbors[i], sph_params.h);
-        }
-        
-        for (auto& p : particles) {
-            compute_eos_stiffened_gas(p, config);
         }
         
         for (auto& p : particles) {

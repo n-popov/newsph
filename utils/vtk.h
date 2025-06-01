@@ -43,6 +43,19 @@ void write_particles_vtk(const std::string& filename, const std::vector<Particle
         polyData->GetPointData()->AddArray(array);
     };
 
+     auto add_matrix_field = [&](const char* name, const vec9<T> Particle<T>::*field) {
+        auto array = vtkSmartPointer<vtkFloatArray>::New();
+        array->SetName(name);
+        array->SetNumberOfComponents(9);
+        array->SetNumberOfTuples(particles.size());
+
+        for (size_t i = 0; i < particles.size(); ++i) {
+            const auto& val = particles[i].*field;
+            array->SetTuple9(i, val[0], val[1], val[2], val[3], val[4], val[5], val[6], val[7], val[8]);
+        }
+        polyData->GetPointData()->AddArray(array);
+    };
+
     auto add_scalar_field = [&](const char* name, const T Particle<T>::*field) {
         auto array = vtkSmartPointer<vtkFloatArray>::New();
         array->SetName(name);
@@ -85,12 +98,7 @@ void write_particles_vtk(const std::string& filename, const std::vector<Particle
     add_int_field("material", &Particle<T>::material);
 
     // Add stress tensor components
-    add_scalar_field("stress_00", &Particle<T>::s00);
-    add_scalar_field("stress_01", &Particle<T>::s01);
-    add_scalar_field("stress_02", &Particle<T>::s02);
-    add_scalar_field("stress_11", &Particle<T>::s11);
-    add_scalar_field("stress_12", &Particle<T>::s12);
-    add_scalar_field("stress_22", &Particle<T>::s22);
+    add_matrix_field("stress", &Particle<T>::stress);
 
     auto writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     writer->SetFileName(filename.c_str());

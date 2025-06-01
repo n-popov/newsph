@@ -9,6 +9,7 @@
 #include <iostream>  // For potential debugging
 #include <iomanip>   // For formatting output
 
+#include "../config/simulation_config.h"
 #include "../method/particle.h"
 
 // Function to write all particle properties to a file
@@ -63,10 +64,10 @@ void write_full_particle_data(const std::string& filename,
         
         // Calculate von Mises stress
         double vm_stress = std::sqrt(0.5 * (
-            std::pow(p.s00 - p.s11, 2) + 
-            std::pow(p.s11 - p.s22, 2) + 
-            std::pow(p.s22 - p.s00, 2) + 
-            6.0 * (p.s01*p.s01 + p.s02*p.s02 + p.s12*p.s12)
+            std::pow(p.stress[0] - p.stress[4], 2) + 
+            std::pow(p.stress[4] - p.stress[8], 2) + 
+            std::pow(p.stress[8] - p.stress[0], 2) + 
+            6.0 * (p.stress[1]*p.stress[1] + p.stress[2]*p.stress[2] + p.stress[5]*p.stress[7])
         ));
         
         file << std::scientific << std::setprecision(5);
@@ -81,12 +82,12 @@ void write_full_particle_data(const std::string& filename,
              << std::setw(12) << p.rho << " | "
              << std::setw(12) << p.p << " | "
              << std::setw(12) << p.m << " | "
-             << std::setw(12) << p.s00 << " | "
-             << std::setw(12) << p.s01 << " | "
-             << std::setw(12) << p.s02 << " | "
-             << std::setw(12) << p.s11 << " | "
-             << std::setw(12) << p.s12 << " | "
-             << std::setw(12) << p.s22 << " | "
+             << std::setw(12) << p.stress[0] << " | "
+             << std::setw(12) << p.stress[1] << " | "
+             << std::setw(12) << p.stress[2] << " | "
+             << std::setw(12) << p.stress[4] << " | "
+             << std::setw(12) << p.stress[5] << " | "
+             << std::setw(12) << p.stress[8] << " | "
              << std::setw(12) << vm_stress << " | "
              << std::setw(12) << p.plastic_strain << " | "
              << std::setw(12) << p.Fv[0] << " | "
@@ -255,4 +256,14 @@ double getVolume(
 
     // Volume = |dot| / 6
     return std::abs(dot) / 6.0;
+}
+
+const config::MaterialProperties& get_material_properties(const mysph::Particle<double>& particle, const config::SimulationConfig& config) {
+    if (particle.material == 0) {
+        return config.aluminum_props;
+    } else if (particle.material == 1) {
+        return config.steel_props;
+    }
+
+    throw std::runtime_error("unknown material of particle");
 }
