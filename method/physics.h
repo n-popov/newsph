@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../config/simulation_config.h"
 #include "../utils/helpers.h"
 
 void compute_eos_stiffened_gas(
@@ -39,7 +40,15 @@ void compute_velocity_gradient(std::vector<mysph::Particle<double>>& particles, 
                                const std::vector<mysph::Particle<double>>& neighbors,
                                double h) { 
     auto& pi = particles[i];
-    pi.v00 = pi.v01 = pi.v02 = pi.v10 = pi.v11 = pi.v12 = pi.v20 = pi.v21 = pi.v22 = 0.0;
+    pi.v00 = 0.0;
+    pi.v01 = 0.0;
+    pi.v02 = 0.0;
+    pi.v10 = 0.0;
+    pi.v11 = 0.0;
+    pi.v12 = 0.0;
+    pi.v20 = 0.0;
+    pi.v21 = 0.0;
+    pi.v22 = 0.0;
 
     for (const auto& pj : neighbors) {
         auto rij = pi.r - pj.r;
@@ -155,5 +164,89 @@ void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double
         // Ensure artificial stress terms are zero if not computed
         p.as00 = 0.0; p.as01 = 0.0; p.as02 = 0.0;
         p.as11 = 0.0; p.as12 = 0.0; p.as22 = 0.0;
+    }
+}
+
+void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particle<double>>& neighbors, const config::SPHParameters& sph_params) {
+    pi.F = {0.0, 0.0, 0.0};
+            
+    for (auto& pj : neighbors) {
+        auto rij = pi.r - pj.r;
+        auto vij = pi.v - pj.v;
+        double r = mysph::abs(rij);
+
+        if (r > 1e-9 * sph_params.h) {
+            mysph::vector3d DWIJ = mysph::grad_kernel(rij, sph_params.h);
+            double WIJ = mysph::kernel(rij, sph_params.h);
+
+            double pa = pi.p;
+            double pb = pj.p;
+            double rhoa = pi.rho;
+            double rhob = pj.rho;
+
+            double rhoa21 = 1.0 / (rhoa * rhoa);
+            double rhob21 = 1.0 / (rhob * rhob);
+
+            double s00a_dev = pi.s00; double s01a_dev = pi.s01; double s02a_dev = pi.s02;
+            double s11a_dev = pi.s11; double s12a_dev = pi.s12;
+            double s22a_dev = pi.s22;
+
+            double s00b_dev = pj.s00; double s01b_dev = pj.s01; double s02b_dev = pj.s02;
+            double s11b_dev = pj.s11; double s12b_dev = pj.s12;
+            double s22b_dev = pj.s22;
+
+            double sigma00a = s00a_dev - pa; double sigma01a = s01a_dev;       double sigma02a = s02a_dev;
+            double sigma10a = s01a_dev;       double sigma11a = s11a_dev - pa; double sigma12a = s12a_dev;
+            double sigma20a = s02a_dev;       double sigma21a = s12a_dev;       double sigma22a = s22a_dev - pa;
+
+            double sigma00b = s00b_dev - pb; double sigma01b = s01b_dev;       double sigma02b = s02b_dev;
+            double sigma10b = s01b_dev;       double sigma11b = s11b_dev - pb; double sigma12b = s12b_dev;
+            double sigma20b = s02b_dev;       double sigma21b = s12b_dev;       double sigma22b = s22b_dev - pb;
+
+            double r00_ab = pi.as00 + pj.as00; double r01_ab = pi.as01 + pj.as01; double r02_ab = pi.as02 + pj.as02;
+            double r11_ab = pi.as11 + pj.as11; double r12_ab = pi.as12 + pj.as12;
+            double r22_ab = pi.as22 + pj.as22;
+
+            double fab_pow_n = 0.0;
+            double art_stress00 = 0.0, art_stress01 = 0.0, art_stress02 = 0.0;
+            double art_stress11 = 0.0, art_stress12 = 0.0;
+            double art_stress22 = 0.0;
+
+            auto wdeltap = mysph::kernel(mysph::vector3d{r, r, r}, sph_params.h);
+            auto n_art_stress = 2;
+
+            if (wdeltap > 1e-9) {
+                double fab = WIJ / wdeltap;
+                fab_pow_n = std::pow(fab, n_art_stress);
+
+                art_stress00 = fab_pow_n * r00_ab;
+                art_stress01 = fab_pow_n * r01_ab;
+                art_stress02 = fab_pow_n * r02_ab;
+                art_stress11 = fab_pow_n * r11_ab;
+                art_stress12 = fab_pow_n * r12_ab;
+                art_stress22 = fab_pow_n * r22_ab;
+            }
+
+            double mb = pj.m;
+            double ma = pi.m; 
+            mysph::vector3d acc_contrib_vec;
+
+            double term_xx = (sigma00a * rhoa21 + sigma00b * rhob21 + art_stress00);
+            double term_xy = (sigma01a * rhoa21 + sigma01b * rhob21 + art_stress01);
+            double term_xz = (sigma02a * rhoa21 + sigma02b * rhob21 + art_stress02);
+            acc_contrib_vec[0] = mb * (term_xx * DWIJ[0] + term_xy * DWIJ[1] + term_xz * DWIJ[2]);
+
+            double term_yx = (sigma10a * rhoa21 + sigma10b * rhob21 + art_stress01);
+            double term_yy = (sigma11a * rhoa21 + sigma11b * rhob21 + art_stress11);
+            double term_yz = (sigma12a * rhoa21 + sigma12b * rhob21 + art_stress12);
+            acc_contrib_vec[1] = mb * (term_yx * DWIJ[0] + term_yy * DWIJ[1] + term_yz * DWIJ[2]);
+
+            double term_zx = (sigma20a * rhoa21 + sigma20b * rhob21 + art_stress02);
+            double term_zy = (sigma21a * rhoa21 + sigma21b * rhob21 + art_stress12);
+            double term_zz = (sigma22a * rhoa21 + sigma22b * rhob21 + art_stress22);
+            acc_contrib_vec[2] = mb * (term_zx * DWIJ[0] + term_zy * DWIJ[1] + term_zz * DWIJ[2]);
+
+            pi.F = pi.F + ma * acc_contrib_vec;
+        }
     }
 }
