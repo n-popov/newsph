@@ -4,8 +4,6 @@
 #include <filesystem>
 #include <fstream>
 
-#include <nlohmann/json.hpp>
-
 #include "utils/vtk.h"
 #include "utils/kernel.h"
 #include "utils/particle.h"
@@ -14,146 +12,21 @@
 #include "utils/physics.h"
 #include "utils/sph.h"
 
-using json = nlohmann::json;
-
-// Global configuration object
-json config;
-
-// Material properties structure
-struct MaterialProperties {
-    double density;
-    double sound_speed_coefficient;
-    double hugoniot_slope;
-    double gruneisen_gamma;
-    double shear_modulus;
-    double yield_strength;
-    double poisson_ratio;
-    double bulk_modulus;
-    double sound_speed;
-};
-
-// Global material properties
-MaterialProperties aluminum_props;
-MaterialProperties steel_props;
-
-// Load configuration from JSON file
-void load_config(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Could not open config file: " + filename);
-    }
-    file >> config;
-    file.close();
-    
-    // Parse material properties
-    auto& al = config["materials"]["aluminum"];
-    aluminum_props.density = al["density"];
-    aluminum_props.sound_speed_coefficient = al["sound_speed_coefficient"];
-    aluminum_props.hugoniot_slope = al["hugoniot_slope"];
-    aluminum_props.gruneisen_gamma = al["gruneisen_gamma"];
-    aluminum_props.shear_modulus = al["shear_modulus"];
-    aluminum_props.yield_strength = al["yield_strength"];
-    aluminum_props.poisson_ratio = al["poisson_ratio"];
-    aluminum_props.bulk_modulus = aluminum_props.density * 
-        aluminum_props.sound_speed_coefficient * aluminum_props.sound_speed_coefficient;
-    aluminum_props.sound_speed = std::sqrt(aluminum_props.bulk_modulus / aluminum_props.density);
-    
-    auto& st = config["materials"]["steel"];
-    steel_props.density = st["density"];
-    steel_props.sound_speed_coefficient = st["sound_speed_coefficient"];
-    steel_props.hugoniot_slope = st["hugoniot_slope"];
-    steel_props.gruneisen_gamma = st["gruneisen_gamma"];
-    steel_props.shear_modulus = st["shear_modulus"];
-    steel_props.yield_strength = st["yield_strength"];
-    steel_props.poisson_ratio = st["poisson_ratio"];
-    steel_props.bulk_modulus = steel_props.density * 
-        steel_props.sound_speed_coefficient * steel_props.sound_speed_coefficient;
-    steel_props.sound_speed = std::sqrt(steel_props.bulk_modulus / steel_props.density);
-}
-
-// Function to create projectile particles (sphere)
-std::vector<mysph::Particle<double>> create_projectile() {
-    std::vector<mysph::Particle<double>> particles;
-    
-    double r = config["projectile"]["radius"];
-    double v_s = config["projectile"]["velocity"];
-    double dx = config["sph_parameters"]["dx"];
-    
-    const MaterialProperties& props = (config["projectile"]["material"] == "steel") ? 
-        steel_props : aluminum_props;
-    
-    for (double x = -r; x <= r; x += dx) {
-        for (double y = -r; y <= r; y += dx) {
-            for (double z = -r; z <= r; z += dx) {
-                double d = x*x + y*y + z*z;
-                if (d <= r*r) {
-                    mysph::Particle<double> p;
-                    p.r = {x - (r + dx), y + r, z};
-                    p.v = {v_s, 0.0, 0.0};
-                    p.m = dx * dx * dx * props.density;
-                    p.rho = p.rho0 = props.density;
-                    p.cs = props.sound_speed;
-                    p.material = 1; 
-                    p.G = props.shear_modulus;
-                    p.Yo = props.yield_strength;
-                    p.k = props.bulk_modulus;
-                    p.nu = props.poisson_ratio;
-                    particles.push_back(p);
-                }
-            }
-        }
-    }
-    
-    std::cout << "Created " << particles.size() << " projectile particles\n";
-    return particles;
-}
-
-std::vector<mysph::Particle<double>> create_plate() {
-    std::vector<mysph::Particle<double>> particles;
-    
-    double plate_length = config["plate"]["length"];
-    double plate_width = config["plate"]["width"];
-    double plate_thickness = config["plate"]["thickness"];
-    double dx = config["sph_parameters"]["dx"];
-    
-    const MaterialProperties& props = (config["plate"]["material"] == "aluminum") ? 
-        aluminum_props : steel_props;
-    
-    for (double x = 0; x <= plate_thickness; x += dx) {
-        for (double y = 0; y <= plate_length; y += dx) {
-            for (double z = -plate_width/2; z <= plate_width/2; z += dx) {
-                mysph::Particle<double> p;
-                p.r = {x, y, z};
-                p.v = {0.0, 0.0, 0.0};
-                p.m = dx * dx * dx * props.density;
-                p.rho = p.rho0 = props.density;
-                p.cs = props.sound_speed;
-                p.material = 0; 
-                p.G = props.shear_modulus;
-                p.Yo = props.yield_strength;
-                p.k = props.bulk_modulus;
-                p.nu = props.poisson_ratio;
-                particles.push_back(p);
-            }
-        }
-    }
-    
-    std::cout << "Created " << particles.size() << " plate particles\n";
-    return particles;
-}
-
-
+#include "config/simulation_config.h"
+#include "geometry/projectile.h"
+#include "geometry/plate.h"
 
 int main(int argc, char* argv[]) {
-
     // Load configuration
     std::string config_file = "config.json";
     if (argc > 1) {
         config_file = argv[1];
     }
     
+    config::SimulationConfig config;
+    
     try {
-        load_config(config_file);
+        config.load_from_file(config_file);
         std::cout << "Loaded configuration from " << config_file << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error loading configuration: " << e.what() << std::endl;
@@ -161,22 +34,12 @@ int main(int argc, char* argv[]) {
     }
     
     // Get simulation parameters
-    double max_time = config["simulation"]["max_time"];
-    double dt = config["simulation"]["dt"];
-    int output_frequency = config["simulation"]["output_frequency"];
-    
-    // Get SPH parameters
-    double hdx = config["sph_parameters"]["hdx"];
-    double dx = config["sph_parameters"]["dx"];
-    double h = dx * hdx;
-    double avisc_alpha = config["sph_parameters"]["avisc_alpha"];
-    double avisc_beta = config["sph_parameters"]["avisc_beta"];
-    double avisc_eta = config["sph_parameters"]["avisc_eta"];
-    double xsph_eps = config["sph_parameters"]["xsph_eps"];
+    const auto& sim_params = config.simulation_params;
+    const auto& sph_params = config.sph_params;
     
     // Create particles
-    auto plate_particles = create_plate();
-    auto projectile_particles = create_projectile();
+    auto plate_particles = geometry::PlateGenerator::create_plate(config);
+    auto projectile_particles = geometry::ProjectileGenerator::create_projectile(config);
     
     std::cout << "Created " << plate_particles.size() << " plate particles and " 
               << projectile_particles.size() << " projectile particles\n";
@@ -192,7 +55,7 @@ int main(int argc, char* argv[]) {
     
     std::filesystem::create_directory("output");
     
-    while (time < max_time) {
+    while (time < sim_params.max_time) {
         std::cout << "Step " << step << ", Time: " << time << " s\n";
         
         auto next_particles = particles;
@@ -201,7 +64,7 @@ int main(int argc, char* argv[]) {
             particles[i].rho = 0.0;
             
             for (size_t j = 0; j < particles.size(); j++) {
-                particles[i].rho += particles[j].m * mysph::kernel(particles[i].r - particles[j].r, h);
+                particles[i].rho += particles[j].m * mysph::kernel(particles[i].r - particles[j].r, sph_params.h);
             }
         }
 
@@ -213,29 +76,33 @@ int main(int argc, char* argv[]) {
         std::vector<std::vector<mysph::Particle<double>>> neighbors(particles.size());
         for (size_t i = 0; i < particles.size(); i++) {
             for (size_t j = 0; j < particles.size(); j++) {
-                if (i != j && mysph::abs(particles[i].r - particles[j].r) <= 2 * h) {
+                if (i != j && mysph::abs(particles[i].r - particles[j].r) <= 2 * sph_params.h) {
                     neighbors[i].push_back(particles[j]);
                 }
             }
         }
         
         for (size_t i = 0; i < particles.size(); i++) {
-            compute_velocity_gradient(particles, i, neighbors[i], h);
+            compute_velocity_gradient(particles, i, neighbors[i], sph_params.h);
         }
         
         for (auto& p : particles) {
-            compute_eos_stiffened_gas(p, aluminum_props.gruneisen_gamma, 
-                aluminum_props.sound_speed_coefficient, aluminum_props.density,
-                steel_props.gruneisen_gamma, steel_props.sound_speed_coefficient, 
-                steel_props.density);
+            compute_eos_stiffened_gas(p, 
+                config.aluminum_props.gruneisen_gamma, 
+                config.aluminum_props.sound_speed_coefficient, 
+                config.aluminum_props.density,
+                config.steel_props.gruneisen_gamma, 
+                config.steel_props.sound_speed_coefficient, 
+                config.steel_props.density);
         }
         
         for (auto& p : particles) {
-            compute_stress_rate_and_artificial_terms(p, dt, 0.1);
+            compute_stress_rate_and_artificial_terms(p, sim_params.dt, 0.1);
         }
 
         for (size_t i = 0; i < particles.size(); i++) {
-            compute_artificial_viscosity(particles[i], neighbors[i], h, avisc_alpha, avisc_beta, avisc_eta);
+            compute_artificial_viscosity(particles[i], neighbors[i], sph_params.h, 
+                sph_params.avisc_alpha, sph_params.avisc_beta, sph_params.avisc_eta);
         }
         
         for (size_t i = 0; i < particles.size(); i++) {
@@ -248,9 +115,9 @@ int main(int argc, char* argv[]) {
                 auto vij = pi.v - pj.v;
                 double r = mysph::abs(rij);
 
-                if (r > 1e-9 * h) {
-                    mysph::vector3d DWIJ = mysph::grad_kernel(rij, h);
-                    double WIJ = mysph::kernel(rij, h);
+                if (r > 1e-9 * sph_params.h) {
+                    mysph::vector3d DWIJ = mysph::grad_kernel(rij, sph_params.h);
+                    double WIJ = mysph::kernel(rij, sph_params.h);
 
                     double pa = pi.p;
                     double pb = pj.p;
@@ -285,7 +152,7 @@ int main(int argc, char* argv[]) {
                     double art_stress11 = 0.0, art_stress12 = 0.0;
                     double art_stress22 = 0.0;
 
-                    auto wdeltap = mysph::kernel(mysph::vector3d{r, r, r}, h);
+                    auto wdeltap = mysph::kernel(mysph::vector3d{r, r, r}, sph_params.h);
                     auto n_art_stress = 2;
 
                     if (wdeltap > 1e-9) {
@@ -328,20 +195,20 @@ int main(int argc, char* argv[]) {
         
         // forces
         for (size_t i = 0; i < particles.size(); i++) {
-            particles[i].v = particles[i].v + (particles[i].F + particles[i].Fv) * (dt / particles[i].m);
+            particles[i].v = particles[i].v + (particles[i].F + particles[i].Fv) * (sim_params.dt / particles[i].m);
         }
 
         // correction
         for (size_t i = 0; i < particles.size(); i++) {
-            next_particles[i].v = particles[i].v + compute_xsph_corrected_velocities(particles[i], neighbors[i], h, xsph_eps);
+            next_particles[i].v = particles[i].v + compute_xsph_corrected_velocities(particles[i], neighbors[i], sph_params.h, sph_params.xsph_eps);
         }
 
         // compute next
         for (size_t i = 0; i < particles.size(); i++) {
-            next_particles[i].r = particles[i].r + next_particles[i].v * dt;
+            next_particles[i].r = particles[i].r + next_particles[i].v * sim_params.dt;
         }
 
-        if (step % output_frequency == 0) {
+        if (step % sim_params.output_frequency == 0) {
             std::string vtk_filename = "output/impact-" + std::to_string(step + 1) + ".vtp";
             write_particles_vtk(vtk_filename, particles);
 
@@ -351,7 +218,7 @@ int main(int argc, char* argv[]) {
 
         particles = next_particles;
         
-        time += dt;
+        time += sim_params.dt;
         step++;
     }
     
