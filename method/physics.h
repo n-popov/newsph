@@ -1,6 +1,6 @@
 #pragma once
 
-#include "helpers.h"
+#include "../utils/helpers.h"
 
 void compute_eos_stiffened_gas(
     mysph::Particle<double>& particle,

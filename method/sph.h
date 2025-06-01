@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "../utils/common.h"
 #include "particle.h"
 
 mysph::vec3<double> compute_xsph_corrected_velocities(

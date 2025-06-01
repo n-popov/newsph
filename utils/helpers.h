@@ -9,7 +9,7 @@
 #include <iostream>  // For potential debugging
 #include <iomanip>   // For formatting output
 
-#include "particle.h"
+#include "../method/particle.h"
 
 // Function to write all particle properties to a file
 void write_full_particle_data(const std::string& filename, 

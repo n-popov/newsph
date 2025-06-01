@@ -1,4 +1,5 @@
-// utils/vtk.h
+#pragma once
+
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
 #include <vtkPoints.h>
@@ -7,7 +8,8 @@
 #include <vtkPointData.h>
 #include <vtkXMLPolyDataWriter.h>
 #include <filesystem>
-#include "particle.h"
+
+#include "../method/particle.h"
 
 using namespace mysph;
 

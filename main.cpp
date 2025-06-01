@@ -5,12 +5,12 @@
 #include <fstream>
 
 #include "utils/vtk.h"
-#include "utils/kernel.h"
-#include "utils/particle.h"
+#include "method/kernel.h"
+#include "method/particle.h"
 #include "utils/common.h"
 #include "utils/helpers.h"
-#include "utils/physics.h"
-#include "utils/sph.h"
+#include "method/physics.h"
+#include "method/sph.h"
 
 #include "config/simulation_config.h"
 #include "geometry/projectile.h"

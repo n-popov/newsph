@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <iostream>
-#include "../utils/particle.h"
+#include "../method/particle.h"
 #include "../config/simulation_config.h"
 
 namespace geometry {

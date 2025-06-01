@@ -1,4 +1,3 @@
-// utils/particle.h
 #pragma once
 
 #include <array>
