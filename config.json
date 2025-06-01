@@ -46,6 +46,12 @@
       "width": 0.005,
       "thickness": 0.0005,
       "material": "aluminum"
+    },
+
+    "gmsh": {
+        "is_enabled": true,
+        "write_mesh_file": true,
+        "verbose": true
     }
   }
   

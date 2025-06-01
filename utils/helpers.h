@@ -229,3 +229,30 @@ std::array<std::array<double, 3>, 3> transform_diag_inv_3x3(const double rd[3], 
 
     return Rab;
 }
+
+#include <vector>
+#include <cmath> // For std::abs
+
+// Computes the volume of a tetrahedron given 4 nodes (each with x, y, z coordinates)
+double getVolume(
+    double v0x, double v0y, double v0z,
+    double v1x, double v1y, double v1z,
+    double v2x, double v2y, double v2z,
+    double v3x, double v3y, double v3z
+) {
+    // Vectors v1 - v0, v2 - v0, v3 - v0
+    double ax = v1x - v0x, ay = v1y - v0y, az = v1z - v0z;
+    double bx = v2x - v0x, by = v2y - v0y, bz = v2z - v0z;
+    double cx = v3x - v0x, cy = v3y - v0y, cz = v3z - v0z;
+
+    // Cross product (b × c)
+    double cross_x = by * cz - bz * cy;
+    double cross_y = bz * cx - bx * cz;
+    double cross_z = bx * cy - by * cx;
+
+    // Dot product (a · (b × c))
+    double dot = ax * cross_x + ay * cross_y + az * cross_z;
+
+    // Volume = |dot| / 6
+    return std::abs(dot) / 6.0;
+}

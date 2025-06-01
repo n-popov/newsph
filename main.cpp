@@ -36,11 +36,20 @@ int main(int argc, char* argv[]) {
     // Get simulation parameters
     const auto& sim_params = config.simulation_params;
     const auto& sph_params = config.sph_params;
+    const auto& gmsh_params = config.gmsh_params;
     
     // Create particles
-    auto plate_particles = geometry::PlateGenerator::create_plate(config);
-    auto projectile_particles = geometry::ProjectileGenerator::create_projectile(config);
-    
+    std::vector<mysph::Particle<double>> plate_particles;
+    std::vector<mysph::Particle<double>> projectile_particles;
+
+    if (gmsh_params.is_enabled) {
+        plate_particles = geometry::PlateGenerator::create_plate_from_gmsh(config);
+        projectile_particles = geometry::ProjectileGenerator::create_projectile_from_gmsh(config);
+    } else {
+        plate_particles = geometry::PlateGenerator::create_plate(config);
+        projectile_particles = geometry::ProjectileGenerator::create_projectile(config);
+    } 
+
     std::cout << "Created " << plate_particles.size() << " plate particles and " 
               << projectile_particles.size() << " projectile particles\n";
     

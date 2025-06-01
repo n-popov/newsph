@@ -56,6 +56,12 @@ struct PlateParameters {
     std::string material;
 };
 
+struct GMSHParameters {
+    bool is_enabled;
+    bool verbose;
+    bool write_mesh_file;
+};
+
 class SimulationConfig {
 private:
     nlohmann::json json_data;
@@ -67,6 +73,7 @@ public:
     SPHParameters sph_params;
     ProjectileParameters projectile_params;
     PlateParameters plate_params;
+    GMSHParameters gmsh_params;
     
     void load_from_file(const std::string& filename) {
         std::ifstream file(filename);
@@ -81,6 +88,7 @@ public:
         parse_sph_parameters();
         parse_projectile_parameters();
         parse_plate_parameters();
+        parse_gmsh_parameters();
     }
     
     const MaterialProperties& get_material_properties(const std::string& material_name) const {
@@ -147,6 +155,14 @@ private:
         plate_params.width = plate["width"];
         plate_params.thickness = plate["thickness"];
         plate_params.material = plate["material"];
+    }
+
+    void parse_gmsh_parameters() {
+        auto& gmsh = json_data["gmsh"];
+
+        gmsh_params.is_enabled = gmsh["is_enabled"];
+        gmsh_params.verbose = gmsh["verbose"];
+        gmsh_params.write_mesh_file = gmsh["write_mesh_file"];
     }
 };
 
