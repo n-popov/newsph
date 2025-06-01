@@ -66,7 +66,16 @@ T operator*(const std::array<T, 3>& lhs, const std::array<T, 3>& rhs) {
 }
 
 template<typename T>
-std::array<T, 3> operator*(T val, const std::array<T, 3> arr) {
+std::array<T, 9> matmul(const std::array<T, 3>& lhs, const std::array<T, 3>& rhs) {
+    return {
+        lhs[0] * rhs[0], lhs[0] * rhs[1], lhs[0] * rhs[2],
+        lhs[1] * rhs[0], lhs[1] * rhs[1], lhs[1] * rhs[2],
+        lhs[2] * rhs[0], lhs[2] * rhs[1], lhs[2] * rhs[2]
+    };
+}
+
+template<typename T, size_t N>
+std::array<T, N> operator*(T val, const std::array<T, N> arr) {
     return arr * val;
 }
 

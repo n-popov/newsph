@@ -9,6 +9,10 @@ namespace mysph {
 template<typename T>
 using vec3 = std::array<T, 3>;
 
+
+template<typename T>
+using vec9 = std::array<T, 9>;
+
 template<typename T>
 struct Particle {
     Particle() = default;
@@ -46,9 +50,7 @@ struct Particle {
     T s20 = T(0), s21 = T(0), s22 = T(0);
     
     // Velocity gradient tensor
-    T v00 = T(0), v01 = T(0), v02 = T(0);
-    T v10 = T(0), v11 = T(0), v12 = T(0);
-    T v20 = T(0), v21 = T(0), v22 = T(0);
+    vec9<T> v_grad = {};
     
     // Artificial stress components
     T as00 = T(0), as01 = T(0), as02 = T(0);

@@ -34,38 +34,16 @@ void compute_eos_stiffened_gas(
     particle.cs = std::sqrt(cs_squared);
 }
 
-void compute_velocity_gradient(std::vector<mysph::Particle<double>>& particles, int i,
+void compute_velocity_gradient(mysph::Particle<double>& pi,
                                const std::vector<mysph::Particle<double>>& neighbors,
                                double h) { 
-    auto& pi = particles[i];
-    pi.v00 = 0.0;
-    pi.v01 = 0.0;
-    pi.v02 = 0.0;
-    pi.v10 = 0.0;
-    pi.v11 = 0.0;
-    pi.v12 = 0.0;
-    pi.v20 = 0.0;
-    pi.v21 = 0.0;
-    pi.v22 = 0.0;
+    pi.v_grad = {};
 
     for (const auto& pj : neighbors) {
         auto rij = pi.r - pj.r;
-        auto vij_corrected = pj.v - pi.v; 
-        auto grad_k = mysph::grad_kernel(rij, h); 
+        auto vij = pi.v - pj.v; 
 
-        double factor = pj.m / pj.rho;
-
-        pi.v00 += factor * vij_corrected[0] * grad_k[0];
-        pi.v01 += factor * vij_corrected[0] * grad_k[1];
-        pi.v02 += factor * vij_corrected[0] * grad_k[2];
-
-        pi.v10 += factor * vij_corrected[1] * grad_k[0];
-        pi.v11 += factor * vij_corrected[1] * grad_k[1];
-        pi.v12 += factor * vij_corrected[1] * grad_k[2];
-
-        pi.v20 += factor * vij_corrected[2] * grad_k[0];
-        pi.v21 += factor * vij_corrected[2] * grad_k[1];
-        pi.v22 += factor * vij_corrected[2] * grad_k[2];
+        pi.v_grad = pi.v_grad - (pj.m / pj.rho) * matmul(vij, mysph::grad_kernel(rij, h));
     }
 }
 
@@ -89,9 +67,6 @@ void apply_von_mises_plasticity(mysph::Particle<double>& p) {
         p.s22 *= yield_factor;
     }
 }
-
-
-
 
 // Function to compute Monaghan Artificial Stress
 void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) {
@@ -136,13 +111,13 @@ void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) 
 // Modified compute_stress_rate
 void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double dt, double artificial_stress_eps) {
     // Calculate deviatoric strain rate
-    double div_v = p.v00 + p.v11 + p.v22;
-    double eps00 = p.v00 - div_v/3.0;
-    double eps01 = 0.5 * (p.v01 + p.v10);
-    double eps02 = 0.5 * (p.v02 + p.v20);
-    double eps11 = p.v11 - div_v/3.0;
-    double eps12 = 0.5 * (p.v12 + p.v21);
-    double eps22 = p.v22 - div_v/3.0;
+    double div_v = p.v_grad[0] + p.v_grad[4] + p.v_grad[8];
+    double eps00 = p.v_grad[0] - div_v/3.0;
+    double eps01 = 0.5 * (p.v_grad[1] + p.v_grad[3]);
+    double eps02 = 0.5 * (p.v_grad[2] + p.v_grad[6]);
+    double eps11 = p.v_grad[4] - div_v/3.0;
+    double eps12 = 0.5 * (p.v_grad[5] + p.v_grad[7]);
+    double eps22 = p.v_grad[8] - div_v/3.0;
 
     // Update deviatoric stress using Hooke's law (elastic trial stress)
     p.s00 += 2 * p.G * eps00 * dt;

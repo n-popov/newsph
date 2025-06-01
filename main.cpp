@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
         }
         
         for (size_t i = 0; i < particles.size(); i++) {
-            compute_velocity_gradient(particles, i, neighbors[i], sph_params.h);
+            compute_velocity_gradient(particles[i], neighbors[i], sph_params.h);
         }
         
         for (auto& p : particles) {
