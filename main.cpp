@@ -96,13 +96,7 @@ int main(int argc, char* argv[]) {
         }
         
         for (auto& p : particles) {
-            compute_eos_stiffened_gas(p, 
-                config.aluminum_props.gruneisen_gamma, 
-                config.aluminum_props.sound_speed_coefficient, 
-                config.aluminum_props.density,
-                config.steel_props.gruneisen_gamma, 
-                config.steel_props.sound_speed_coefficient, 
-                config.steel_props.density);
+            compute_eos_stiffened_gas(p, config);
         }
         
         for (auto& p : particles) {

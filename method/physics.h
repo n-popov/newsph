@@ -1,39 +1,37 @@
 #pragma once
 
+#include <stdexcept>
+
 #include "../config/simulation_config.h"
 #include "../utils/helpers.h"
 
+const config::MaterialProperties& get_material_properties(const mysph::Particle<double>& particle, const config::SimulationConfig& config) {
+    if (particle.material == 0) {
+        return config.aluminum_props;
+    } else if (particle.material == 1) {
+        return config.steel_props;
+    }
+
+    throw std::runtime_error("unknown material of particle");
+}
+
 void compute_eos_stiffened_gas(
     mysph::Particle<double>& particle,
-    double gamma1, double C1, double ro1, 
-    double gamma2, double C2, double ro2  
+    const config::SimulationConfig& config
 ) {
-    double gamma_eos, c0_eos, rho0_eos;
+    auto props = get_material_properties(particle, config);
 
-    if (particle.material == 0) { 
-        gamma_eos = gamma1;
-        c0_eos    = C1;
-        rho0_eos  = ro1;
-    } else { 
-        gamma_eos = gamma2;
-        c0_eos    = C2;
-        rho0_eos  = ro2;
-    }
+    const double& gamma = props.gruneisen_gamma;
+    const double& c0 = props.sound_speed_coefficient;
+    const double& rho0 = props.density;
 
-    particle.p = c0_eos * c0_eos * (particle.rho - rho0_eos) + \
-                 (gamma_eos - 1.0) * particle.rho * particle.e;
+    particle.p = c0 * c0 * (particle.rho - rho0) +
+        (gamma - 1.0) * particle.rho * particle.e;
 
-    if (particle.rho > 1e-9) { 
-        double term_in_sqrt = c0_eos * c0_eos +
-                              (gamma_eos - 1.0) * (particle.e + particle.p / particle.rho);
-        if (term_in_sqrt >= 0) {
-            particle.cs = std::sqrt(term_in_sqrt);
-        } else {
-            particle.cs = c0_eos;
-        }
-    } else {
-        particle.cs = c0_eos; 
-    }
+    double cs_squared = c0 * c0 +
+                          (gamma - 1.0) * (particle.e + particle.p / particle.rho);
+
+    particle.cs = std::sqrt(cs_squared);
 }
 
 void compute_velocity_gradient(std::vector<mysph::Particle<double>>& particles, int i,
