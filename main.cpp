@@ -3,6 +3,7 @@
 #include <vector>
 #include <filesystem>
 #include <fstream>
+
 #include <nlohmann/json.hpp>
 
 #include "utils/vtk.h"
@@ -144,6 +145,7 @@ std::vector<mysph::Particle<double>> create_plate() {
 
 
 int main(int argc, char* argv[]) {
+
     // Load configuration
     std::string config_file = "config.json";
     if (argc > 1) {
