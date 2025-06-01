@@ -45,14 +45,13 @@ struct Particle {
     T Yo = T(0);         // yield stress
     
     // Stress tensor components (3D)
-    vec9<T> stress;
+    vec9<T> stress = {};
     
     // Velocity gradient tensor
     vec9<T> v_grad = {};
     
     // Artificial stress components
-    T as00 = T(0), as01 = T(0), as02 = T(0);
-    T as11 = T(0), as12 = T(0), as22 = T(0);
+    vec9<T> a_stress = {};
     
     // For plasticity calculations
     T plastic_strain = T(0);

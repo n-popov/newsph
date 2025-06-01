@@ -107,42 +107,42 @@ const double JACOBI_EPSILON = 1e-10;
 const int JACOBI_MAX_ROTATIONS = 50; // Max sweeps for 3x3, usually very few needed (e.g., 5-10)
 
 // Computes eigenvalues and eigenvectors of a 3x3 real symmetric matrix.
-std::pair<std::array<std::array<double, 3>, 3>, std::array<double, 3>> eigen_decomposition_3x3(const double S[3][3]) {
-    std::array<std::array<double, 3>, 3> R_mat;
-    std::array<double, 3> V;
+std::pair<std::array<double, 9>, std::array<double, 3>> 
+eigen_decomposition_3x3(const std::array<double, 9>& S) {
+    std::array<double, 9> R_mat; // Flattened 3x3 eigenvector matrix
+    std::array<double, 3> V;     // Eigenvalues
+    std::array<double, 9> A;     // Working copy of S
 
-    double A[3][3]; // Working copy of S
-    // Initialize R_mat to identity matrix
+    // Initialize R_mat to identity matrix and copy S to A
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            A[i][j] = S[i][j];
-            R_mat[i][j] = (i == j) ? 1.0 : 0.0;
+            A[i*3 + j] = S[i*3 + j];
+            R_mat[i*3 + j] = (i == j) ? 1.0 : 0.0;
         }
     }
 
     for (int sweep = 0; sweep < JACOBI_MAX_ROTATIONS; ++sweep) {
         // Calculate sum of squares of off-diagonal elements
         double sum_off_diag_sq = 0.0;
-        sum_off_diag_sq += A[0][1] * A[0][1];
-        sum_off_diag_sq += A[0][2] * A[0][2];
-        sum_off_diag_sq += A[1][2] * A[1][2];
+        sum_off_diag_sq += A[1] * A[1]; // A[0][1]
+        sum_off_diag_sq += A[2] * A[2]; // A[0][2]
+        sum_off_diag_sq += A[5] * A[5]; // A[1][2]
         sum_off_diag_sq *= 2.0; // Since A is symmetric
 
-        if (sum_off_diag_sq < JACOBI_EPSILON * JACOBI_EPSILON) { // Arbitrary small threshold
+        if (sum_off_diag_sq < JACOBI_EPSILON * JACOBI_EPSILON) {
             break; // Converged
         }
 
         // Perform rotations for (0,1), (0,2), (1,2)
         for (int p = 0; p < 3; ++p) {
             for (int q = p + 1; q < 3; ++q) {
-                if (std::abs(A[p][q]) < JACOBI_EPSILON / 100.0) { // Skip if element is already very small
+                double apq = A[p*3 + q];
+                if (std::abs(apq) < JACOBI_EPSILON / 100.0) {
                     continue;
                 }
 
-                double app = A[p][p];
-                double aqq = A[q][q];
-                double apq = A[p][q];
-
+                double app = A[p*3 + p];
+                double aqq = A[q*3 + q];
                 double tau = (aqq - app) / (2.0 * apq);
                 double t;
                 if (tau >= 0.0) {
@@ -154,49 +154,47 @@ std::pair<std::array<std::array<double, 3>, 3>, std::array<double, 3>> eigen_dec
                 double s = t * c;
 
                 // Update A matrix: A_new = G^T * A * G
-                // A[p][p] and A[q][q]
-                A[p][p] = app - t * apq;
-                A[q][q] = aqq + t * apq;
-                A[p][q] = 0.0;
-                A[q][p] = 0.0;
+                A[p*3 + p] = app - t * apq;
+                A[q*3 + q] = aqq + t * apq;
+                A[p*3 + q] = 0.0;
+                A[q*3 + p] = 0.0;
 
                 // Other elements involving row/col p and q
                 for (int k = 0; k < 3; ++k) {
                     if (k != p && k != q) {
-                        double akp = A[k][p]; // Store old value before it's changed
-                        double akq = A[k][q]; // Store old value
-                        A[k][p] = c * akp - s * akq;
-                        A[p][k] = A[k][p]; // Symmetry
-                        A[k][q] = s * akp + c * akq;
-                        A[q][k] = A[k][q]; // Symmetry
+                        double akp = A[k*3 + p]; // Store old value
+                        double akq = A[k*3 + q]; // Store old value
+                        A[k*3 + p] = c * akp - s * akq;
+                        A[p*3 + k] = A[k*3 + p]; // Symmetry
+                        A[k*3 + q] = s * akp + c * akq;
+                        A[q*3 + k] = A[k*3 + q]; // Symmetry
                     }
                 }
                 
                 // Update Eigenvector matrix R_mat: R_new = R_old * G
                 for (int k = 0; k < 3; ++k) {
-                    double rkp = R_mat[k][p]; // Store old value
-                    double rkq = R_mat[k][q]; // Store old value
-                    R_mat[k][p] = c * rkp - s * rkq;
-                    R_mat[k][q] = s * rkp + c * rkq;
+                    double rkp = R_mat[k*3 + p]; // Store old value
+                    double rkq = R_mat[k*3 + q]; // Store old value
+                    R_mat[k*3 + p] = c * rkp - s * rkq;
+                    R_mat[k*3 + q] = s * rkp + c * rkq;
                 }
             }
         }
     }
 
     // Eigenvalues are the diagonal elements of the diagonalized A
-    V[0] = A[0][0];
-    V[1] = A[1][1];
-    V[2] = A[2][2];
+    V[0] = A[0];
+    V[1] = A[4];
+    V[2] = A[8];
 
     // Sort eigenvalues and corresponding eigenvectors (simple bubble sort for 3 elements)
-    // The eigenvectors in R_mat are columns.
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 2 - i; ++j) {
             if (V[j] > V[j + 1]) {
                 std::swap(V[j], V[j + 1]);
                 // Swap corresponding columns in R_mat
                 for (int k = 0; k < 3; ++k) {
-                    std::swap(R_mat[k][j], R_mat[k][j + 1]);
+                    std::swap(R_mat[k*3 + j], R_mat[k*3 + j + 1]);
                 }
             }
         }
@@ -210,21 +208,18 @@ std::pair<std::array<std::array<double, 3>, 3>, std::array<double, 3>> eigen_dec
  * Computes Rab = R_mat * D * R_mat^T, where D is a diagonal matrix
  * with elements from rd. R_mat contains orthonormal eigenvectors as columns.
  */
-std::array<std::array<double, 3>, 3> transform_diag_inv_3x3(const double rd[3], const std::array<std::array<double, 3>, 3> R_mat) {
-    // Rab_ij = sum_k ( R_mat_ik * D_kk * (R_mat^T)_kj )
-    // (R_mat^T)_kj = R_mat_jk
+std::array<double, 9> transform_diag_inv_3x3(const std::array<double, 3>& rd, 
+                                            const std::array<double, 9>& R_mat) {
+    // Computes R * diag(rd) * R^T 
     // Rab_ij = sum_k ( R_mat_ik * rd_k * R_mat_jk )
-    // Rab_ij = R_mat_i0 * rd_0 * R_mat_j0 + 
-    //          R_mat_i1 * rd_1 * R_mat_j1 +
-    //          R_mat_i2 * rd_2 * R_mat_j2
-
-    std::array<std::array<double, 3>, 3> Rab;
+    
+    std::array<double, 9> Rab;
 
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            Rab[i][j] = R_mat[i][0] * rd[0] * R_mat[j][0] +
-                        R_mat[i][1] * rd[1] * R_mat[j][1] +
-                        R_mat[i][2] * rd[2] * R_mat[j][2];
+            Rab[i*3 + j] = R_mat[i*3 + 0] * rd[0] * R_mat[j*3 + 0] +
+                           R_mat[i*3 + 1] * rd[1] * R_mat[j*3 + 1] +
+                           R_mat[i*3 + 2] * rd[2] * R_mat[j*3 + 2];
         }
     }
 

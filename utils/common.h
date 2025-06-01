@@ -85,6 +85,15 @@ std::array<T, 9> matmul(const std::array<T, 9>& lhs, const std::array<T, 3>& rhs
     };
 }
 
+template<typename T>
+std::array<T, 3> matmul(const std::array<T, 3>& vec, const std::array<T, 9>& mat) {
+    return {
+        vec[0] * mat[0] + vec[1] * mat[3] + vec[2] * mat[6], 
+        vec[0] * mat[1] + vec[1] * mat[4] + vec[2] * mat[7],
+        vec[0] * mat[2] + vec[1] * mat[5] + vec[2] * mat[8] 
+    };
+}
+
 template<typename T, size_t N>
 std::array<T, N> operator*(T val, const std::array<T, N> arr) {
     return arr * val;
@@ -93,9 +102,9 @@ std::array<T, N> operator*(T val, const std::array<T, N> arr) {
 template<typename T>
 constexpr std::array<T, 9> transpose(const std::array<T, 9>& matrix) {
     return {
-        matrix[0], matrix[3], matrix[6],  // First column becomes first row
-        matrix[1], matrix[4], matrix[7],  // Second column becomes second row
-        matrix[2], matrix[5], matrix[8]   // Third column becomes third row
+        matrix[0], matrix[3], matrix[6], 
+        matrix[1], matrix[4], matrix[7], 
+        matrix[2], matrix[5], matrix[8] 
     };
 }
 
@@ -103,6 +112,5 @@ template<typename T>
 constexpr T div(const std::array<T, 9>& matrix) {
     return matrix[0] + matrix[4] + matrix[8];
 }
-
 
 }
