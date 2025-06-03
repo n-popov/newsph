@@ -27,6 +27,8 @@ struct SimulationParameters {
     double max_time;
     double dt;
     int output_frequency;
+    bool write_full_evaluation_data;
+    bool debug_plate_only;
 };
 
 struct SPHParameters {
@@ -129,6 +131,8 @@ private:
         simulation_params.max_time = sim["max_time"];
         simulation_params.dt = sim["dt"];
         simulation_params.output_frequency = sim["output_frequency"];
+        simulation_params.write_full_evaluation_data = sim["write_full_evaluation_data"];
+        simulation_params.debug_plate_only = sim["debug_plate_only"];
     }
     
     void parse_sph_parameters() {

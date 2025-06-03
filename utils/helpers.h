@@ -182,17 +182,14 @@ eigen_decomposition_3x3(const std::array<double, 9>& S) {
         }
     }
 
-    // Eigenvalues are the diagonal elements of the diagonalized A
     V[0] = A[0];
     V[1] = A[4];
     V[2] = A[8];
 
-    // Sort eigenvalues and corresponding eigenvectors (simple bubble sort for 3 elements)
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 2 - i; ++j) {
             if (V[j] > V[j + 1]) {
                 std::swap(V[j], V[j + 1]);
-                // Swap corresponding columns in R_mat
                 for (int k = 0; k < 3; ++k) {
                     std::swap(R_mat[k*3 + j], R_mat[k*3 + j + 1]);
                 }
@@ -224,33 +221,6 @@ std::array<double, 9> transform_diag_inv_3x3(const std::array<double, 3>& rd,
     }
 
     return Rab;
-}
-
-#include <vector>
-#include <cmath> // For std::abs
-
-// Computes the volume of a tetrahedron given 4 nodes (each with x, y, z coordinates)
-double getVolume(
-    double v0x, double v0y, double v0z,
-    double v1x, double v1y, double v1z,
-    double v2x, double v2y, double v2z,
-    double v3x, double v3y, double v3z
-) {
-    // Vectors v1 - v0, v2 - v0, v3 - v0
-    double ax = v1x - v0x, ay = v1y - v0y, az = v1z - v0z;
-    double bx = v2x - v0x, by = v2y - v0y, bz = v2z - v0z;
-    double cx = v3x - v0x, cy = v3y - v0y, cz = v3z - v0z;
-
-    // Cross product (b × c)
-    double cross_x = by * cz - bz * cy;
-    double cross_y = bz * cx - bx * cz;
-    double cross_z = bx * cy - by * cx;
-
-    // Dot product (a · (b × c))
-    double dot = ax * cross_x + ay * cross_y + az * cross_z;
-
-    // Volume = |dot| / 6
-    return std::abs(dot) / 6.0;
 }
 
 const config::MaterialProperties& get_material_properties(const mysph::Particle<double>& particle, const config::SimulationConfig& config) {

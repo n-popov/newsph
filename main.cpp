@@ -44,10 +44,16 @@ int main(int argc, char* argv[]) {
 
     if (gmsh_params.is_enabled) {
         plate_particles = geometry::PlateGenerator::create_plate_from_gmsh(config);
-        projectile_particles = geometry::ProjectileGenerator::create_projectile_from_gmsh(config);
+
+        if (!sim_params.debug_plate_only) {
+            projectile_particles = geometry::ProjectileGenerator::create_projectile_from_gmsh(config);
+        }
     } else {
         plate_particles = geometry::PlateGenerator::create_plate(config);
-        projectile_particles = geometry::ProjectileGenerator::create_projectile(config);
+
+        if (!sim_params.debug_plate_only) {
+            projectile_particles = geometry::ProjectileGenerator::create_projectile(config);
+        }
     } 
 
     std::cout << "Created " << plate_particles.size() << " plate particles and " 
@@ -131,8 +137,10 @@ int main(int argc, char* argv[]) {
             std::string vtk_filename = "output/impact-" + std::to_string(step + 1) + ".vtp";
             write_particles_vtk(vtk_filename, particles);
 
-            std::string eval_filename = "output/eval-" + std::to_string(step) + ".txt";
-            write_full_particle_data(eval_filename, particles, time, step);
+            if (sim_params.write_full_evaluation_data) {
+                std::string eval_filename = "output/eval-" + std::to_string(step) + ".txt";
+                write_full_particle_data(eval_filename, particles, time, step);
+            }
         }
 
         particles = next_particles;
