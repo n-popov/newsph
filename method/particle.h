@@ -56,6 +56,9 @@ struct Particle {
     // For plasticity calculations
     T plastic_strain = T(0);
     T J2 = T(0);         // Second invariant of stress deviator
+
+    // Fake particles
+    bool is_fake = false;
 };
 
 }

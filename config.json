@@ -51,7 +51,7 @@
     },
 
     "gmsh": {
-        "is_enabled": true,
+        "is_enabled": false,
         "write_mesh_file": true,
         "verbose": true
     }

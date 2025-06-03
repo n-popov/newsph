@@ -2,6 +2,7 @@
 #include <numeric>
 #include <vector>
 #include <filesystem>
+#include <format>
 #include <fstream>
 
 #include "utils/vtk.h"
@@ -75,10 +76,10 @@ int main(int argc, char* argv[]) {
         
         auto next_particles = particles;
         
-        for (size_t i = 0; i < particles.size(); i++) {
+        for (auto i = 0; i < particles.size(); i++) {
             particles[i].rho = 0.0;
             
-            for (size_t j = 0; j < particles.size(); j++) {
+            for (auto j = 0; j < particles.size(); j++) {
                 particles[i].rho += particles[j].m * mysph::kernel(particles[i].r - particles[j].r, sph_params.h);
             }
         }
@@ -89,8 +90,8 @@ int main(int argc, char* argv[]) {
         }
         
         std::vector<std::vector<mysph::Particle<double>>> neighbors(particles.size());
-        for (size_t i = 0; i < particles.size(); i++) {
-            for (size_t j = 0; j < particles.size(); j++) {
+        for (auto i = 0; i < particles.size(); i++) {
+            for (auto j = 0; j < particles.size(); j++) {
                 if (i != j && mysph::abs(particles[i].r - particles[j].r) <= 2 * sph_params.h) {
                     neighbors[i].push_back(particles[j]);
                 }
@@ -100,8 +101,26 @@ int main(int argc, char* argv[]) {
         for (auto& p : particles) {
             compute_eos_stiffened_gas(p, config);
         }
+
+        // set fake particles pressure as the nearest real one
+        // auto bad_particles_count = 0;
+        // auto good_particles_count = 0;
+        // for (auto i = 0; i < particles.size(); i++) {
+        //     if (particles[i].is_fake) {
+        //         auto nearest_real_particle_idx = get_nearest_particle(particles[i], neighbors[i]);
+
+        //         if (nearest_real_particle_idx == -1) {
+        //             bad_particles_count += 1;
+        //             continue;
+        //         }
+        //         good_particles_count += 1;
+        //         particles[i].p = neighbors[i][nearest_real_particle_idx].p;
+        //     }
+        // }
+
+        // std::cout << std::format("Found {} bad particles, {} good ones\n", bad_particles_count, good_particles_count);
         
-        for (size_t i = 0; i < particles.size(); i++) {
+        for (auto i = 0; i < particles.size(); i++) {
             compute_velocity_gradient(particles[i], neighbors[i], sph_params.h);
         }
         
@@ -109,28 +128,41 @@ int main(int argc, char* argv[]) {
             compute_stress_rate_and_artificial_terms(p, sim_params.dt, 0.1);
         }
 
-        for (size_t i = 0; i < particles.size(); i++) {
+        for (auto i = 0; i < particles.size(); i++) {
             compute_artificial_viscosity(particles[i], neighbors[i], sph_params.h, 
                 sph_params.avisc_alpha, sph_params.avisc_beta, sph_params.avisc_eta);
         }
         
-        for (size_t i = 0; i < particles.size(); i++) {
+        for (auto i = 0; i < particles.size(); i++) {
             compute_force(particles[i], neighbors[i], sph_params);
         }
         
         // forces
-        for (size_t i = 0; i < particles.size(); i++) {
-            particles[i].v = particles[i].v + (particles[i].F + particles[i].Fv) * (sim_params.dt / particles[i].m);
+        // particles[i].vstar = {};
+        for (auto i = 0; i < particles.size(); i++) {
+            particles[i].vstar = particles[i].v + (particles[i].F + particles[i].Fv) * (sim_params.dt / particles[i].m);
         }
 
         // correction
-        for (size_t i = 0; i < particles.size(); i++) {
-            next_particles[i].v = particles[i].v + compute_xsph_corrected_velocities(particles[i], neighbors[i], sph_params.h, sph_params.xsph_eps);
+        for (auto i = 0; i < particles.size(); i++) {
+            particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], neighbors[i], sph_params.h, sph_params.xsph_eps);
         }
 
+        // set fake particles velocity as the nearest real one
+        // for (auto i = 0; i < particles.size(); i++) {
+        //     if (particles[i].is_fake) {
+        //         auto nearest_real_particle_idx = get_nearest_particle(particles[i], neighbors[i]);
+
+        //         if (nearest_real_particle_idx == -1) {
+        //             continue;
+        //         }
+        //         particles[i].v = neighbors[i][nearest_real_particle_idx].v;
+        //     }
+        // }
+
         // compute next
-        for (size_t i = 0; i < particles.size(); i++) {
-            next_particles[i].r = particles[i].r + next_particles[i].v * sim_params.dt;
+        for (auto i = 0; i < particles.size(); i++) {
+            next_particles[i].r = particles[i].r + particles[i].v * sim_params.dt;
         }
 
         if (step % sim_params.output_frequency == 0) {
