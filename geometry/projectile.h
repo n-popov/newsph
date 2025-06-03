@@ -86,45 +86,14 @@ public:
 
             gmsh::model::mesh::generate(3); 
 
-            std::vector<int> element_types;
-            gmsh::model::mesh::getElementTypes(element_types, 3); 
-
-            std::vector<std::size_t> all_node_tags;
-            std::vector<double> all_node_coords;
-            std::vector<double> parametric_coords;
-            gmsh::model::mesh::getNodes(all_node_tags, all_node_coords, parametric_coords, -1, -1, false, false);
-
-            std::unordered_map<std::size_t, std::array<double, 3>> node_coord_map;
-            for (size_t i = 0; i < all_node_tags.size(); ++i) {
-                node_coord_map[all_node_tags[i]] = {
-                    all_node_coords[i*3], all_node_coords[i*3+1], all_node_coords[i*3+2]
-                };
-            }
-
-            std::vector<std::size_t> tet_element_tags;
-            std::vector<std::size_t> tet_node_tags;
-            gmsh::model::mesh::getElementsByType(4, tet_element_tags, tet_node_tags, -1);
-
-            std::vector<double> volumes(tet_element_tags.size());
             std::vector<double> barycenters;
             gmsh::model::mesh::getBarycenters(4, -1, false, true, barycenters);
 
-            for (size_t i = 0; i < tet_element_tags.size(); ++i) {
-                const auto* nodes = &tet_node_tags[i*4];
-                const auto& v0 = node_coord_map[nodes[0]];
-                const auto& v1 = node_coord_map[nodes[1]];
-                const auto& v2 = node_coord_map[nodes[2]];
-                const auto& v3 = node_coord_map[nodes[3]];
+            auto size = barycenters.size() / 3;
+            auto mass = props.density * 4 * M_PI * r_geom * r_geom * r_geom / (3 * size);
 
-                const double ax = v1[0]-v0[0], ay = v1[1]-v0[1], az = v1[2]-v0[2];
-                const double bx = v2[0]-v0[0], by = v2[1]-v0[1], bz = v2[2]-v0[2];
-                const double cx = v3[0]-v0[0], cy = v3[1]-v0[1], cz = v3[2]-v0[2];
-
-                volumes[i] = std::abs(ax*(by*cz-bz*cy) + ay*(bz*cx-bx*cz) + az*(bx*cy-by*cx)) / 6.0;
-            }
-
-            particles.reserve(particles.size() + tet_element_tags.size());
-            for (size_t i = 0; i < tet_element_tags.size(); ++i) {
+            particles.reserve(size);
+            for (size_t i = 0; i < size; ++i) {
                 mysph::Particle<double> p;
                 p.r = {
                     barycenters[i*3] + offset_x,
@@ -132,7 +101,7 @@ public:
                     barycenters[i*3+2] + offset_z
                 };
                 p.v = {v_s, 0.0, 0.0};
-                p.m = volumes[i] * props.density;
+                p.m = mass;
                 p.rho0 = props.density;
                 p.rho = props.density;
                 p.cs = props.sound_speed;
