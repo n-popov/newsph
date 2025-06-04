@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <numeric>
+#include <limits>
 #include <fstream>
 #include <iomanip>
 #include <set>
@@ -11,6 +14,56 @@
 
 #include "../config/simulation_config.h"
 #include "../method/particle.h"
+
+namespace {
+    struct GroupStats {
+            size_t count = 0;
+            double total_mass = 0.0;
+            
+            // Density statistics
+            double rho_min = std::numeric_limits<double>::max();
+            double rho_max = std::numeric_limits<double>::lowest();
+            double rho_avg = 0.0;
+            
+            // Velocity statistics
+            double vel_mag_min = std::numeric_limits<double>::max();
+            double vel_mag_max = std::numeric_limits<double>::lowest();
+            double vel_mag_median = 0.0;
+            double vel_x_avg = 0.0;
+            double vel_y_avg = 0.0;
+            double vel_z_avg = 0.0;
+            
+            // Position statistics
+            double x_min = std::numeric_limits<double>::max();
+            double x_max = std::numeric_limits<double>::lowest();
+            double y_min = std::numeric_limits<double>::max();
+            double y_max = std::numeric_limits<double>::lowest();
+            double z_min = std::numeric_limits<double>::max();
+            double z_max = std::numeric_limits<double>::lowest();
+            double com_x = 0.0; // Center of mass
+            double com_y = 0.0;
+            double com_z = 0.0;
+            
+            // Force statistics
+            double F_mag_min = std::numeric_limits<double>::max();
+            double F_mag_max = std::numeric_limits<double>::lowest();
+            double Fx_min = std::numeric_limits<double>::max();
+            double Fx_max = std::numeric_limits<double>::lowest();
+            double Fy_min = std::numeric_limits<double>::max();
+            double Fy_max = std::numeric_limits<double>::lowest();
+            double Fz_min = std::numeric_limits<double>::max();
+            double Fz_max = std::numeric_limits<double>::lowest();
+            
+            // Energy statistics
+            double total_kinetic = 0.0;
+            double total_internal = 0.0;
+            
+            // Stress statistics
+            double J2_min = std::numeric_limits<double>::max();
+            double J2_max = std::numeric_limits<double>::lowest();
+            double J2_avg = 0.0;
+        };
+}
 
 // Function to write all particle properties to a file
 void write_full_particle_data(const std::string& filename, 
@@ -99,6 +152,159 @@ void write_full_particle_data(const std::string& filename,
     }
     
     file.close();
+}
+
+void write_integral_characteristics(const std::string& filename, 
+                             const std::vector<mysph::Particle<double>>& particles,
+                             double time, int step) {
+    std::ofstream file(filename);
+    
+    if (!file.is_open()) {
+        std::cerr << "Failed to open output file: " << filename << std::endl;
+        return;
+    }
+    
+    // Write header
+    file << "# SPH Impact Simulation - Integral Characteristics\n";
+    file << "# Time: " << time << " s, Step: " << step << "\n";
+    file << "# Total particles: " << particles.size() << "\n\n";
+
+    // Lambda to compute group statistics
+    auto compute_stats = [](const std::vector<mysph::Particle<double>>& particles, int material) {
+        
+        
+        GroupStats stats;
+        std::vector<double> vel_magnitudes;
+        std::vector<double> J2_values;
+        
+        for (const auto& p : particles) {
+            if (p.is_fake || p.material != material) continue;
+            
+            stats.count++;
+            stats.total_mass += p.m;
+            
+            // Velocity magnitude
+            const double v_mag = std::sqrt(p.v[0]*p.v[0] + p.v[1]*p.v[1] + p.v[2]*p.v[2]);
+            vel_magnitudes.push_back(v_mag);
+            
+            // Density stats
+            stats.rho_min = std::min(stats.rho_min, p.rho);
+            stats.rho_max = std::max(stats.rho_max, p.rho);
+            stats.rho_avg += p.rho;
+            
+            // Position stats
+            stats.x_min = std::min(stats.x_min, p.r[0]);
+            stats.x_max = std::max(stats.x_max, p.r[0]);
+            stats.y_min = std::min(stats.y_min, p.r[1]);
+            stats.y_max = std::max(stats.y_max, p.r[1]);
+            stats.z_min = std::min(stats.z_min, p.r[2]);
+            stats.z_max = std::max(stats.z_max, p.r[2]);
+            
+            // Center of mass
+            stats.com_x += p.m * p.r[0];
+            stats.com_y += p.m * p.r[1];
+            stats.com_z += p.m * p.r[2];
+            
+            // Force stats
+            const double F_mag = std::sqrt(p.F[0]*p.F[0] + p.F[1]*p.F[1] + p.F[2]*p.F[2]);
+            stats.F_mag_min = std::min(stats.F_mag_min, F_mag);
+            stats.F_mag_max = std::max(stats.F_mag_max, F_mag);
+            stats.Fx_min = std::min(stats.Fx_min, p.F[0]);
+            stats.Fx_max = std::max(stats.Fx_max, p.F[0]);
+            stats.Fy_min = std::min(stats.Fy_min, p.F[1]);
+            stats.Fy_max = std::max(stats.Fy_max, p.F[1]);
+            stats.Fz_min = std::min(stats.Fz_min, p.F[2]);
+            stats.Fz_max = std::max(stats.Fz_max, p.F[2]);
+            
+            // Velocity components for average
+            stats.vel_x_avg += p.v[0];
+            stats.vel_y_avg += p.v[1];
+            stats.vel_z_avg += p.v[2];
+            
+            // Energy calculations
+            stats.total_kinetic += 0.5 * p.m * (p.v[0]*p.v[0] + p.v[1]*p.v[1] + p.v[2]*p.v[2]);
+            stats.total_internal += p.m * p.e;
+            
+            // Stress invariant J2
+            stats.J2_min = std::min(stats.J2_min, p.J2);
+            stats.J2_max = std::max(stats.J2_max, p.J2);
+            stats.J2_avg += p.J2;
+            J2_values.push_back(p.J2);
+        }
+        
+        // Post-process calculations
+        if (stats.count > 0) {
+            // Averages
+            stats.rho_avg /= stats.count;
+            stats.vel_x_avg /= stats.count;
+            stats.vel_y_avg /= stats.count;
+            stats.vel_z_avg /= stats.count;
+            stats.J2_avg /= stats.count;
+            
+            // Center of mass
+            stats.com_x /= stats.total_mass;
+            stats.com_y /= stats.total_mass;
+            stats.com_z /= stats.total_mass;
+            
+            // Velocity magnitude stats
+            if (!vel_magnitudes.empty()) {
+                std::sort(vel_magnitudes.begin(), vel_magnitudes.end());
+                stats.vel_mag_min = vel_magnitudes.front();
+                stats.vel_mag_max = vel_magnitudes.back();
+                stats.vel_mag_median = vel_magnitudes.size() % 2 == 0 ?
+                    (vel_magnitudes[vel_magnitudes.size()/2 - 1] + vel_magnitudes[vel_magnitudes.size()/2]) * 0.5 :
+                    vel_magnitudes[vel_magnitudes.size()/2];
+            }
+        }
+        
+        return stats;
+    };
+    
+    // Compute statistics for plate (material=0) and projectile (material=1)
+    const auto plate_stats = compute_stats(particles, 0);
+    const auto proj_stats = compute_stats(particles, 1);
+    
+    // Helper lambda for writing group statistics
+    auto write_group = [&](const std::string& name, const GroupStats& stats) {
+        file << "[" << name << "]\n";
+        file << "count = " << stats.count << "\n";
+        file << "total_mass = " << stats.total_mass << "\n";
+        file << "density_min = " << stats.rho_min << "\n";
+        file << "density_max = " << stats.rho_max << "\n";
+        file << "density_avg = " << stats.rho_avg << "\n";
+        file << "velocity_mag_min = " << stats.vel_mag_min << "\n";
+        file << "velocity_mag_max = " << stats.vel_mag_max << "\n";
+        file << "velocity_mag_median = " << stats.vel_mag_median << "\n";
+        file << "velocity_x_avg = " << stats.vel_x_avg << "\n";
+        file << "velocity_y_avg = " << stats.vel_y_avg << "\n";
+        file << "velocity_z_avg = " << stats.vel_z_avg << "\n";
+        file << "x_min = " << stats.x_min << "\n";
+        file << "x_max = " << stats.x_max << "\n";
+        file << "y_min = " << stats.y_min << "\n";
+        file << "y_max = " << stats.y_max << "\n";
+        file << "z_min = " << stats.z_min << "\n";
+        file << "z_max = " << stats.z_max << "\n";
+        file << "com_x = " << stats.com_x << "\n";
+        file << "com_y = " << stats.com_y << "\n";
+        file << "com_z = " << stats.com_z << "\n";
+        file << "force_mag_min = " << stats.F_mag_min << "\n";
+        file << "force_mag_max = " << stats.F_mag_max << "\n";
+        file << "force_x_min = " << stats.Fx_min << "\n";
+        file << "force_x_max = " << stats.Fx_max << "\n";
+        file << "force_y_min = " << stats.Fy_min << "\n";
+        file << "force_y_max = " << stats.Fy_max << "\n";
+        file << "force_z_min = " << stats.Fz_min << "\n";
+        file << "force_z_max = " << stats.Fz_max << "\n";
+        file << "kinetic_energy = " << stats.total_kinetic << "\n";
+        file << "internal_energy = " << stats.total_internal << "\n";
+        file << "J2_stress_min = " << stats.J2_min << "\n";
+        file << "J2_stress_max = " << stats.J2_max << "\n";
+        file << "J2_stress_avg = " << stats.J2_avg << "\n\n";
+    };
+    
+    // Write results for both groups
+    write_group("Plate", plate_stats);
+    write_group("Projectile", proj_stats);
 }
 
 

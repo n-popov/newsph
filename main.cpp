@@ -173,6 +173,11 @@ int main(int argc, char* argv[]) {
                 std::string eval_filename = "output/eval-" + std::to_string(step) + ".txt";
                 write_full_particle_data(eval_filename, particles, time, step);
             }
+
+            if (sim_params.write_integral_data) {
+                std::string eval_filename = "output/integral-" + std::to_string(step) + ".txt";
+                write_integral_characteristics(eval_filename, particles, time, step);
+            }
         }
 
         particles = next_particles;

@@ -4,13 +4,11 @@
 
 ### Сборка
 
-<code>
-mkdir build && cd build
+<code>mkdir build && cd build</code>
 
-cmake ..
+<code>cmake ..</code>
 
-make
-</code>
+<code>make</code>
 
 ### Запуск
 Перед запуском есть возможность изменить параметры симуляции в конфигурационном файле config.json. Далее необходимо запустить симуляцию
