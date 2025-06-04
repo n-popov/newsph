@@ -9,7 +9,6 @@ namespace mysph {
 template<typename T>
 using vec3 = std::array<T, 3>;
 
-
 template<typename T>
 using vec9 = std::array<T, 9>;
 
