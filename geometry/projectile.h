@@ -110,17 +110,13 @@ public:
             gmsh::model::mesh::getBarycenters(4, -1, false, true, barycenters);
 
             for (size_t i = 0; i < tet_element_tags.size(); ++i) {
-                const auto* nodes = &tet_node_tags[i*4];
+                const auto* nodes = &tet_node_tags[i * 4];
                 const auto& v0 = node_coord_map[nodes[0]];
                 const auto& v1 = node_coord_map[nodes[1]];
                 const auto& v2 = node_coord_map[nodes[2]];
                 const auto& v3 = node_coord_map[nodes[3]];
 
-                const double ax = v1[0]-v0[0], ay = v1[1]-v0[1], az = v1[2]-v0[2];
-                const double bx = v2[0]-v0[0], by = v2[1]-v0[1], bz = v2[2]-v0[2];
-                const double cx = v3[0]-v0[0], cy = v3[1]-v0[1], cz = v3[2]-v0[2];
-
-                volumes[i] = std::abs(ax*(by*cz-bz*cy) + ay*(bz*cx-bx*cz) + az*(bx*cy-by*cx)) / 6.0;
+                volumes[i] = std::abs((v1 - v0) * vecmul(v2 - v0, v3 - v0)) / 6.;
             }
 
             particles.reserve(particles.size() + tet_element_tags.size());

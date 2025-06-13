@@ -94,6 +94,15 @@ std::array<T, 3> matmul(const std::array<T, 3>& vec, const std::array<T, 9>& mat
     };
 }
 
+template<typename T>
+std::array<T, 3> vecmul(const std::array<T, 3>& lhs, const std::array<T, 3>& rhs) {
+    return {
+        lhs[1] * rhs[2] - lhs[2] * rhs[1], 
+        rhs[0] * lhs[2] - lhs[0] * rhs[2],
+        lhs[0] * rhs[1] - lhs[1] * rhs[0]
+    };
+}
+
 template<typename T, size_t N>
 std::array<T, N> operator*(T val, const std::array<T, N> arr) {
     return arr * val;
