@@ -75,27 +75,23 @@ int main(int argc, char* argv[]) {
         std::cout << "Step " << step << ", Time: " << time << " s\n";
         
         auto next_particles = particles;
+
+        std::vector<std::vector<mysph::Particle<double>*>> neighbors(particles.size());
+        for (auto i = 0; i < particles.size(); i++) {
+            for (auto j = 0; j < particles.size(); j++) {
+                if (mysph::kernel(particles[i].r - particles[j].r, sph_params.h) > 0.) {
+                    neighbors[i].push_back(&(particles[j]));
+                }
+            }
+        }
         
         for (auto i = 0; i < particles.size(); i++) {
-            particles[i].rho = 0.0;
-            
-            for (auto j = 0; j < particles.size(); j++) {
-                particles[i].rho += particles[j].m * mysph::kernel(particles[i].r - particles[j].r, sph_params.h);
-            }
+            compute_density(particles[i], neighbors[i], sph_params.h);
         }
 
         if (step == 0) {
             std::string vtk_filename = "output/impact-0.vtp";
             write_particles_vtk(vtk_filename, particles);
-        }
-        
-        std::vector<std::vector<mysph::Particle<double>*>> neighbors(particles.size());
-        for (auto i = 0; i < particles.size(); i++) {
-            for (auto j = 0; j < particles.size(); j++) {
-                if (i != j && mysph::abs(particles[i].r - particles[j].r) <= 2 * sph_params.h) {
-                    neighbors[i].push_back(&(particles[j]));
-                }
-            }
         }
 
         for (auto& p : particles) {

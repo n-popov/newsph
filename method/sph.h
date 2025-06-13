@@ -28,6 +28,18 @@ mysph::vec3<double> compute_xsph_corrected_velocities(
         return xsph_sum_term;
 }
 
+void compute_density(
+    Particle<double>& pa,
+    const std::vector<Particle<double>*>& neighbors,
+    double h
+) {
+    pa.rho = 0.0;
+            
+    for (auto ppb : neighbors) {
+        pa.rho += ppb->m * mysph::kernel(pa.r - ppb->r, h);
+    }
+}
+
 void compute_artificial_viscosity(
     Particle<double>& pa,
     const std::vector<Particle<double>*>& neighbors,
@@ -60,6 +72,8 @@ void compute_artificial_viscosity(
         pa.Fv = pa.Fv - Pi_ab * pa.m * mysph::grad_kernel(r_ab, h);
     }
 }
+
+
 
 int get_nearest_particle(
     const mysph::Particle<double>& p, const std::vector<mysph::Particle<double>>& neighbors
