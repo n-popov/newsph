@@ -482,3 +482,46 @@ void parallelize(bool is_enabled,
         future.get();
     }
 }
+
+
+
+template<typename Function, typename... Args>
+void parallel_neighbor_search(bool is_enabled,
+                 Function&& func, 
+                 std::vector<mysph::Particle<double>>& particles, 
+                 std::vector<std::vector<mysph::Particle<double>*>>& neighbors, 
+                 Args&&... args) {
+    if (!is_enabled) {
+        for (auto i = 0u; i < std::size(particles); i++) {
+            func(particles[i], neighbors[i], args...);
+        }
+
+        return;
+    }
+
+    const auto num_threads = 4u;
+    const auto num_particles = particles.size();
+    const auto chunk_size = (num_particles + num_threads - 1) / num_threads;
+
+    std::vector<std::future<void>> futures;
+
+    for (auto thread_id = 0u; thread_id < num_threads; ++thread_id) {
+        const auto start = thread_id * chunk_size;
+        const auto end = std::min(start + chunk_size, num_particles);
+
+        if (start >= end) {
+            continue;
+        }
+
+        futures.emplace_back(std::async(std::launch::async, 
+            [&func, &particles, &neighbors, start, end, &args...]() {
+                for (size_t i = start; i < end; ++i) {
+                    func(particles[i], neighbors[i], args...);
+                }
+            }));
+    }
+
+    for (auto& future : futures) {
+        future.get();
+    }
+}

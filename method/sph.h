@@ -3,6 +3,18 @@
 #include "../utils/common.h"
 #include "particle.h"
 
+void compute_neighbors(
+    Particle<double>& pa,
+    const std::vector<Particle<double>*>& particles,
+    double h
+) {
+    for (auto j = 0; j < particles.size(); j++) {
+        if (mysph::kernel(pa.r - particles[j]->r, h) > 0.) {
+            pa.neighbors.push_back(particles[j]);
+        }
+    }
+}
+
 mysph::vec3<double> compute_xsph_corrected_velocities(
     const Particle<double>& pa,                     
     const std::vector<Particle<double>*>& neighbors,

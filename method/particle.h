@@ -60,6 +60,8 @@ struct Particle {
     bool is_fake = false;
 
     double cf = 0.;
+
+    std::vector<Particle<T>*> neighbors;
 };
 
 }

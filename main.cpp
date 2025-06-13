@@ -76,13 +76,13 @@ int main(int argc, char* argv[]) {
         
         auto next_particles = particles;
 
+        std::vector<mysph::Particle<double>*> particles_pointers(std::size(particles));
+        std::transform(particles.begin(), particles.end(), particles_pointers.begin(), [](auto& particle){return &particle;});
+
         std::vector<std::vector<mysph::Particle<double>*>> neighbors(particles.size());
         for (auto i = 0; i < particles.size(); i++) {
-            for (auto j = 0; j < particles.size(); j++) {
-                if (mysph::kernel(particles[i].r - particles[j].r, sph_params.h) > 0.) {
-                    neighbors[i].push_back(&(particles[j]));
-                }
-            }
+            compute_neighbors(particles[i], particles_pointers, sph_params.h);
+            neighbors[i] = particles[i].neighbors;
         }
 
         parallelize(sim_params.parallelize, compute_correction_factor, particles, neighbors, sph_params.h, sph_params.hdx);
