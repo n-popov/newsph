@@ -40,6 +40,21 @@ void compute_density(
     }
 }
 
+void compute_correction_factor(
+    Particle<double>& pa,
+    const std::vector<Particle<double>*>& neighbors,
+    double h,
+    double hdx
+) {
+    pa.cf = 0.;
+            
+    for (auto ppb : neighbors) {
+        pa.cf += (ppb->m * mysph::kernel(pa.r - ppb->r, h)) / ppb->rho;
+    }
+
+    pa.cf = std::clamp(pa.cf, 0.1, hdx);
+}
+
 void compute_artificial_viscosity(
     Particle<double>& pa,
     const std::vector<Particle<double>*>& neighbors,

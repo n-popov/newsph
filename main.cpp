@@ -84,14 +84,19 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        
-        for (auto i = 0; i < particles.size(); i++) {
-            compute_density(particles[i], neighbors[i], sph_params.h);
-        }
+
+        parallelize(sim_params.parallelize, compute_correction_factor, particles, neighbors, sph_params.h, sph_params.hdx);
 
         if (step == 0) {
             std::string vtk_filename = "output/impact-0.vtp";
             write_particles_vtk(vtk_filename, particles);
+        } else {
+            parallelize(sim_params.parallelize, compute_density, particles, neighbors, sph_params.h);
+            
+            // correct density
+            for (auto& p: particles) {
+                p.rho /= p.cf;
+            }
         }
 
         for (auto& p : particles) {

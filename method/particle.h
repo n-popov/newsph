@@ -58,6 +58,8 @@ struct Particle {
 
     // Fake particles
     bool is_fake = false;
+
+    double cf = 0.;
 };
 
 }

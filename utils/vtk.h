@@ -95,6 +95,7 @@ void write_particles_vtk(const std::string& filename, const std::vector<Particle
     add_scalar_field("yield_stress", &Particle<T>::Yo);
     add_scalar_field("J2", &Particle<T>::J2);
     add_scalar_field("plastic_strain", &Particle<T>::plastic_strain);
+    add_scalar_field("correction_factor", &Particle<T>::cf);
     add_int_field("material", &Particle<T>::material);
 
     // Add stress tensor components
