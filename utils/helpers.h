@@ -446,11 +446,10 @@ template<typename Function, typename... Args>
 void parallelize(bool is_enabled,
                  Function&& func, 
                  std::vector<mysph::Particle<double>>& particles, 
-                 std::vector<std::vector<mysph::Particle<double>*>>& neighbors, 
                  Args&&... args) {
     if (!is_enabled) {
         for (auto i = 0u; i < std::size(particles); i++) {
-            func(particles[i], neighbors[i], args...);
+            func(particles[i], particles[i].get_neighbors(), args...);
         }
 
         return;
@@ -471,9 +470,9 @@ void parallelize(bool is_enabled,
         }
 
         futures.emplace_back(std::async(std::launch::async, 
-            [&func, &particles, &neighbors, start, end, &args...]() {
+            [&func, &particles, start, end, &args...]() {
                 for (size_t i = start; i < end; ++i) {
-                    func(particles[i], neighbors[i], args...);
+                    func(particles[i], particles[i].get_neighbors(), args...);
                 }
             }));
     }

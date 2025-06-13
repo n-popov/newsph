@@ -19,6 +19,14 @@ struct Particle {
         : r(r), v(v), m(m), rho(rho), material(material), k(k), nu(nu) {}
     Particle(vec3<T> r) : r(r) {}
 
+    std::vector<Particle<T>*>& get_neighbors() {
+        if (!neighbors.empty()) return neighbors;
+
+        if (external_neighbors.has_value()) return *(external_neighbors.value());
+
+        throw std::runtime_error("either neighbors or external_neighbors should be specified");
+    }
+
     // Positions and velocities
     vec3<T> r = {T(0), T(0), T(0)};
     vec3<T> v = {T(0), T(0), T(0)};
@@ -62,6 +70,7 @@ struct Particle {
     double cf = 0.;
 
     std::vector<Particle<T>*> neighbors;
+    std::optional<std::vector<Particle<T>*>*> external_neighbors;
 };
 
 }

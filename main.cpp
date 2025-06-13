@@ -79,19 +79,20 @@ int main(int argc, char* argv[]) {
         std::vector<mysph::Particle<double>*> particles_pointers(std::size(particles));
         std::transform(particles.begin(), particles.end(), particles_pointers.begin(), [](auto& particle){return &particle;});
 
-        std::vector<std::vector<mysph::Particle<double>*>> neighbors(particles.size());
-        for (auto i = 0; i < particles.size(); i++) {
-            compute_neighbors(particles[i], particles_pointers, sph_params.h);
-            neighbors[i] = particles[i].neighbors;
+        for (auto& p: particles) {
+            p.external_neighbors = &particles_pointers;
+            p.neighbors = {};
         }
 
-        parallelize(sim_params.parallelize, compute_correction_factor, particles, neighbors, sph_params.h, sph_params.hdx);
+        parallelize(sim_params.parallelize, compute_neighbors, particles, sph_params.h);
+
+        parallelize(sim_params.parallelize, compute_correction_factor, particles, sph_params.h, sph_params.hdx);
 
         if (step == 0) {
             std::string vtk_filename = "output/impact-0.vtp";
             write_particles_vtk(vtk_filename, particles);
         } else {
-            parallelize(sim_params.parallelize, compute_density, particles, neighbors, sph_params.h);
+            parallelize(sim_params.parallelize, compute_density, particles, sph_params.h);
             
             // correct density
             for (auto& p: particles) {
@@ -121,16 +122,16 @@ int main(int argc, char* argv[]) {
 
         // std::cout << std::format("Found {} bad particles, {} good ones\n", bad_particles_count, good_particles_count);
 
-        parallelize(sim_params.parallelize, compute_velocity_gradient, particles, neighbors, sph_params.h);
+        parallelize(sim_params.parallelize, compute_velocity_gradient, particles, sph_params.h);
         
         for (auto& p : particles) {
             compute_stress_rate_and_artificial_terms(p, sim_params.dt, 0.1);
         }
 
-        parallelize(sim_params.parallelize, compute_artificial_viscosity, particles, neighbors, sph_params.h, 
+        parallelize(sim_params.parallelize, compute_artificial_viscosity, particles, sph_params.h, 
                 sph_params.avisc_alpha, sph_params.avisc_beta, sph_params.avisc_eta);
 
-        parallelize(sim_params.parallelize, compute_force, particles, neighbors, sph_params);
+        parallelize(sim_params.parallelize, compute_force, particles, sph_params);
         
         // forces
         for (auto i = 0; i < particles.size(); i++) {
@@ -139,7 +140,7 @@ int main(int argc, char* argv[]) {
 
         // correction
         for (auto i = 0; i < particles.size(); i++) {
-            particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], neighbors[i], sph_params.h, sph_params.xsph_eps);
+            particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], particles[i].neighbors, sph_params.h, sph_params.xsph_eps);
         }
 
         // set fake particles velocity as the nearest real one
