@@ -30,6 +30,7 @@ struct SimulationParameters {
     bool write_full_evaluation_data;
     bool write_integral_data;
     bool debug_plate_only;
+    bool parallelize;
 };
 
 struct SPHParameters {
@@ -135,6 +136,7 @@ private:
         simulation_params.write_full_evaluation_data = sim["write_full_evaluation_data"];
         simulation_params.write_integral_data = sim["write_integral_data"];
         simulation_params.debug_plate_only = sim["debug_plate_only"];
+        simulation_params.parallelize = sim["parallelize"];
     }
     
     void parse_sph_parameters() {

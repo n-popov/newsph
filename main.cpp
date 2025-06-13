@@ -89,11 +89,11 @@ int main(int argc, char* argv[]) {
             write_particles_vtk(vtk_filename, particles);
         }
         
-        std::vector<std::vector<mysph::Particle<double>>> neighbors(particles.size());
+        std::vector<std::vector<mysph::Particle<double>*>> neighbors(particles.size());
         for (auto i = 0; i < particles.size(); i++) {
             for (auto j = 0; j < particles.size(); j++) {
                 if (i != j && mysph::abs(particles[i].r - particles[j].r) <= 2 * sph_params.h) {
-                    neighbors[i].push_back(particles[j]);
+                    neighbors[i].push_back(&(particles[j]));
                 }
             }
         }
@@ -119,26 +119,19 @@ int main(int argc, char* argv[]) {
         // }
 
         // std::cout << std::format("Found {} bad particles, {} good ones\n", bad_particles_count, good_particles_count);
-        
-        for (auto i = 0; i < particles.size(); i++) {
-            compute_velocity_gradient(particles[i], neighbors[i], sph_params.h);
-        }
+
+        parallelize(sim_params.parallelize, compute_velocity_gradient, particles, neighbors, sph_params.h);
         
         for (auto& p : particles) {
             compute_stress_rate_and_artificial_terms(p, sim_params.dt, 0.1);
         }
 
-        for (auto i = 0; i < particles.size(); i++) {
-            compute_artificial_viscosity(particles[i], neighbors[i], sph_params.h, 
+        parallelize(sim_params.parallelize, compute_artificial_viscosity, particles, neighbors, sph_params.h, 
                 sph_params.avisc_alpha, sph_params.avisc_beta, sph_params.avisc_eta);
-        }
-        
-        for (auto i = 0; i < particles.size(); i++) {
-            compute_force(particles[i], neighbors[i], sph_params);
-        }
+
+        parallelize(sim_params.parallelize, compute_force, particles, neighbors, sph_params);
         
         // forces
-        // particles[i].vstar = {};
         for (auto i = 0; i < particles.size(); i++) {
             particles[i].vstar = particles[i].v + (particles[i].F + particles[i].Fv) * (sim_params.dt / particles[i].m);
         }

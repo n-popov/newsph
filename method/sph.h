@@ -5,13 +5,14 @@
 
 mysph::vec3<double> compute_xsph_corrected_velocities(
     const Particle<double>& pa,                     
-    const std::vector<Particle<double>>& neighbors,
+    const std::vector<Particle<double>*>& neighbors,
     double h,                                             
     double xsph_eps                                       
 ) {
         mysph::vec3<double> xsph_sum_term = {0.0, 0.0, 0.0};
 
-        for (const auto& pb : neighbors) {
+        for (const auto ppb : neighbors) {
+            const auto& pb = *ppb;
             auto v_ab = pa.vstar - pb.vstar;
             auto r_ab = pa.r - pb.r;
 
@@ -29,7 +30,7 @@ mysph::vec3<double> compute_xsph_corrected_velocities(
 
 void compute_artificial_viscosity(
     Particle<double>& pa,
-    const std::vector<Particle<double>>& neighbors,
+    const std::vector<Particle<double>*>& neighbors,
     double h,
     double visc_alpha,                                   
     double visc_beta,                                    
@@ -38,7 +39,8 @@ void compute_artificial_viscosity(
     const double eta_factor_sq = eta_factor * eta_factor;
 
     pa.Fv = {0.0, 0.0, 0.0};
-    for (const auto& pb : neighbors) {
+    for (const auto ppb : neighbors) {
+        const auto& pb = *ppb;
         mysph::vec3<double> r_ab = pa.r - pb.r;
         auto r_ab_mag_sq = r_ab * r_ab;
         if (r_ab_mag_sq < 1e-12) continue;

@@ -25,11 +25,12 @@ void compute_eos_stiffened_gas(
 }
 
 void compute_velocity_gradient(mysph::Particle<double>& pi,
-                               const std::vector<mysph::Particle<double>>& neighbors,
+                               const std::vector<mysph::Particle<double>*>& neighbors,
                                double h) { 
     pi.v_grad = {};
 
-    for (const auto& pj : neighbors) {
+    for (const auto ppj : neighbors) {
+        const auto& pj = *ppj;
         auto rij = pi.r - pj.r;
         auto vij = pi.v - pj.v; 
 
@@ -92,10 +93,11 @@ void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double
     }
 }
 
-void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particle<double>>& neighbors, const config::SPHParameters& sph_params) {
+void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particle<double>*>& neighbors, const config::SPHParameters& sph_params) {
     pi.F = {0.0, 0.0, 0.0};
             
-    for (auto& pj : neighbors) {
+    for (auto ppj : neighbors) {
+        const auto& pj = *ppj;
         auto rij = pi.r - pj.r;
         auto vij = pi.v - pj.v;
         double r = mysph::abs(rij);
