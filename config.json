@@ -6,7 +6,7 @@
       "write_full_evaluation_data": false,
       "write_integral_data": true,
       "debug_plate_only": false,
-      "parallelize": false
+      "parallelize": true
     },
     
     "materials": {

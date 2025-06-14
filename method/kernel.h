@@ -21,23 +21,9 @@ namespace {
         return T(2) * std::pow((T(1) - q), 3);
     }
 
-    template <class T>
-    inline T sigma1(T h) {
-        return 4 / h / 3; 
-    }
-
-    template <class T>
-    inline T sigma2(T h) {
-        return 40 / (7 * std::numbers::pi * h * h);
-    }
-
-    template <class T>
-    inline T sigma3(T h) {
+    inline double sigma3(double h) {
         return 8 / (std::numbers::pi * h * h * h);
     }
-
-    template <class T>
-    const std::array<std::function<T(T)>, 4> sigma = {[](T){return T();}, sigma1<T>, sigma2<T>, sigma3<T>};
 
     template <class T>
     double _kernel(T r, double h) {
@@ -66,7 +52,7 @@ namespace {
 
 template <class T>
 double kernel(T r, double h) {
-    return _kernel(r, h) * sigma<double>[std::size(r)](h);
+    return _kernel(r, h) * sigma3(h);
 }
 
 template <class T>
@@ -75,7 +61,7 @@ T grad_kernel(T r, double h) {
 
     if (den == 0) return T();
     
-    return r * (_grad_kernel(r, h) * (sigma<double>[std::size(r)](h)) / den);
+    return r * (_grad_kernel(r, h) * (sigma3(h)) / den);
 }
 
 };

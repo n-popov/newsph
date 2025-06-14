@@ -64,6 +64,8 @@ struct Particle {
     T plastic_strain = T(0);
     T J2 = T(0);         // Second invariant of stress deviator
 
+    T ae = T(0); // energy change rate
+
     // Fake particles
     bool is_fake = false;
 

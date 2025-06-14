@@ -134,3 +134,23 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
         }
     }
 }
+
+void compute_energy_with_stress(mysph::Particle<double>& pi, const std::vector<mysph::Particle<double>*>& neighbors, const config::SPHParameters& sph_params) {
+    pi.ae = 0.;
+
+    // for (auto ppj: neighbors) {
+    //     const auto& pj = *ppj;
+
+    //     auto vij = pi.v - pj.v;
+    //     auto rij = pi.r - pj.r;
+    //     auto cij = (pi.cs + pj.cs) / 2;
+    //     auto phiij = (vij * rij * sph_params.h) / (rij * rij + sph_params.avisc_eta * sph_params.h * sph_params.h);
+
+    //     auto Piij = -sph_params.avisc_alpha * cij * phiij + sph_params.avisc_beta * phiij * phiij;
+
+    //     pi.ae += 0.5 * pj.m * (pi.p / (pi.rho * pi.rho) + pj.p / (pj.rho * pj.rho) + Piij) * (vij * mysph::grad_kernel(rij, sph_params.h));
+    // }
+
+    // auto strain_rate = 0.5 * (pi.v_grad + transpose(pi.v_grad));
+    // pi.ae += (pi.stress * strain_rate) / pi.rho;
+}

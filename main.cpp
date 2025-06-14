@@ -104,24 +104,6 @@ int main(int argc, char* argv[]) {
             compute_eos_stiffened_gas(p, config);
         }
 
-        // set fake particles pressure as the nearest real one
-        // auto bad_particles_count = 0;
-        // auto good_particles_count = 0;
-        // for (auto i = 0; i < particles.size(); i++) {
-        //     if (particles[i].is_fake) {
-        //         auto nearest_real_particle_idx = get_nearest_particle(particles[i], neighbors[i]);
-
-        //         if (nearest_real_particle_idx == -1) {
-        //             bad_particles_count += 1;
-        //             continue;
-        //         }
-        //         good_particles_count += 1;
-        //         particles[i].p = neighbors[i][nearest_real_particle_idx].p;
-        //     }
-        // }
-
-        // std::cout << std::format("Found {} bad particles, {} good ones\n", bad_particles_count, good_particles_count);
-
         parallelize(sim_params.parallelize, compute_velocity_gradient, particles, sph_params.h);
         
         for (auto& p : particles) {
@@ -132,6 +114,8 @@ int main(int argc, char* argv[]) {
                 sph_params.avisc_alpha, sph_params.avisc_beta, sph_params.avisc_eta);
 
         parallelize(sim_params.parallelize, compute_force, particles, sph_params);
+
+        parallelize(sim_params.parallelize, compute_energy_with_stress, particles, sph_params);
         
         // forces
         for (auto i = 0; i < particles.size(); i++) {
@@ -143,21 +127,10 @@ int main(int argc, char* argv[]) {
             particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], particles[i].neighbors, sph_params.h, sph_params.xsph_eps);
         }
 
-        // set fake particles velocity as the nearest real one
-        // for (auto i = 0; i < particles.size(); i++) {
-        //     if (particles[i].is_fake) {
-        //         auto nearest_real_particle_idx = get_nearest_particle(particles[i], neighbors[i]);
-
-        //         if (nearest_real_particle_idx == -1) {
-        //             continue;
-        //         }
-        //         particles[i].v = neighbors[i][nearest_real_particle_idx].v;
-        //     }
-        // }
-
         // compute next
         for (auto i = 0; i < particles.size(); i++) {
             next_particles[i].r = particles[i].r + particles[i].v * sim_params.dt;
+            next_particles[i].e = particles[i].e + particles[i].ae * sim_params.dt;
         }
 
         if (step % sim_params.output_frequency == 0) {
