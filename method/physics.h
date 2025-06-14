@@ -53,6 +53,7 @@ void apply_von_mises_plasticity(mysph::Particle<double>& p) {
     }
 }
 
+// validated
 // Function to compute Monaghan Artificial Stress
 void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) {
     if (eps <= 0.) {
@@ -62,28 +63,19 @@ void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) 
     }
 
     double rhoi = p.rho;
-    if (rhoi < 1e-9) {
-        p.a_stress = {};
-
-        return;
-    }
     double rhoi21 = 1.0 / (rhoi * rhoi);
 
-    mysph::vec3<double> rd;     // Artificial stress components in principal directions
+    mysph::vec9<double> rd = {};     // Artificial stress in principal directions
 
-    // Total stress tensor S = s_dev - p * I
     auto S = p.stress - mysph::SINGILAR9 * p.p;
 
-    // Compute the principal stresses and eigenvectors
-    auto [R_mat, V] = eigen_decomposition_3x3(S); // Fills R_mat - eigenvectors (columns) and V – eigenvalues, principal stresses
+    auto [R_mat, V] = eigen_decomposition_3x3(S);
 
-    // Artificial stress corrections in principal directions
     rd[0] = (V[0] > 0) ? -eps * V[0] * rhoi21 : 0.0;
-    rd[1] = (V[1] > 0) ? -eps * V[1] * rhoi21 : 0.0;
-    rd[2] = (V[2] > 0) ? -eps * V[2] * rhoi21 : 0.0;
+    rd[4] = (V[1] > 0) ? -eps * V[1] * rhoi21 : 0.0;
+    rd[8] = (V[2] > 0) ? -eps * V[2] * rhoi21 : 0.0;
 
-    // Transform artificial stresses back to original frame: Rab = R_mat * diag(rd) * R_mat_transpose
-    p.a_stress = transform_diag_inv_3x3(rd, R_mat); // Artificial stress tensor in original coordinates
+    p.a_stress = matmul(matmul(R_mat, rd), transpose(R_mat));
 }
 
 void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double dt, double artificial_stress_eps) {
@@ -102,6 +94,7 @@ void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double
     }
 }
 
+// validated
 void compute_hookes_deviatoric_stress_rate(mysph::Particle<double>& p) {
     auto epsilon = 0.5 * (p.v_grad + transpose(p.v_grad)) - (div(p.v_grad) / 3.) * mysph::SINGILAR9;
     auto omega = 0.5 * (p.v_grad - transpose(p.v_grad));
