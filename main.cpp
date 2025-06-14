@@ -101,9 +101,9 @@ int main(int argc, char* argv[]) {
             parallelize(sim_params.parallelize, compute_density, particles, sph_params.h);
             
             // correct density
-            for (auto& p: particles) {
-                p.rho /= std::min(p.cf, max_cf);
-            }
+            // for (auto& p: particles) {
+            //     p.rho /= std::min(p.cf, max_cf);
+            // }
         }
 
         for (auto& p : particles) {
