@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
         
         // forces
         for (auto i = 0; i < particles.size(); i++) {
-            particles[i].vstar = particles[i].v + (particles[i].F + particles[i].Fv) * (sim_params.dt / particles[i].m);
+            particles[i].vstar = particles[i].v + particles[i].a * sim_params.dt + (particles[i].Fv) * (sim_params.dt / particles[i].m);
         }
 
         // correction

@@ -34,7 +34,6 @@ struct Particle {
     
     // Forces
     vec3<T> Fv = {T(0), T(0), T(0)};
-    vec3<T> F = {T(0), T(0), T(0)};
     
     // Basic properties
     T m = T(0);          // mass
@@ -64,6 +63,7 @@ struct Particle {
     T plastic_strain = T(0);
     T J2 = T(0);         // Second invariant of stress deviator
 
+    vec3<T> a = {}; // acceleration
     T ae = T(0); // energy change rate
     vec9<T> acc_stress = {}; // stress change rate
     T arho = T(0); // density change rate

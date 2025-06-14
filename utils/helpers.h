@@ -149,9 +149,9 @@ void write_full_particle_data(const std::string& filename,
              << std::setw(12) << p.Fv[0] << " | "
              << std::setw(12) << p.Fv[1] << " | "
              << std::setw(12) << p.Fv[2] << " | "
-             << std::setw(12) << p.F[0] << " | "
-             << std::setw(12) << p.F[1] << " | "
-             << std::setw(12) << p.F[2] << "\n";
+             << std::setw(12) << p.a[0] << " | "
+             << std::setw(12) << p.a[1] << " | "
+             << std::setw(12) << p.a[2] << "\n";
     }
     
     file.close();
@@ -209,15 +209,15 @@ void write_integral_characteristics(const std::string& filename,
             stats.com_z += p.m * p.r[2];
             
             // Force stats
-            const double F_mag = std::sqrt(p.F[0]*p.F[0] + p.F[1]*p.F[1] + p.F[2]*p.F[2]);
+            const double F_mag = std::sqrt(p.a[0]*p.a[0] + p.a[1]*p.a[1] + p.a[2]*p.a[2]);
             stats.F_mag_min = std::min(stats.F_mag_min, F_mag);
             stats.F_mag_max = std::max(stats.F_mag_max, F_mag);
-            stats.Fx_min = std::min(stats.Fx_min, p.F[0]);
-            stats.Fx_max = std::max(stats.Fx_max, p.F[0]);
-            stats.Fy_min = std::min(stats.Fy_min, p.F[1]);
-            stats.Fy_max = std::max(stats.Fy_max, p.F[1]);
-            stats.Fz_min = std::min(stats.Fz_min, p.F[2]);
-            stats.Fz_max = std::max(stats.Fz_max, p.F[2]);
+            stats.Fx_min = std::min(stats.Fx_min, p.a[0]);
+            stats.Fx_max = std::max(stats.Fx_max, p.a[0]);
+            stats.Fy_min = std::min(stats.Fy_min, p.a[1]);
+            stats.Fy_max = std::max(stats.Fy_max, p.a[1]);
+            stats.Fz_min = std::min(stats.Fz_min, p.a[2]);
+            stats.Fz_max = std::max(stats.Fz_max, p.a[2]);
             
             // Velocity components for average
             stats.vel_x_avg += p.v[0];

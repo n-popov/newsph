@@ -83,7 +83,7 @@ void write_particles_vtk(const std::string& filename, const std::vector<Particle
     add_vector_field("velocity", &Particle<T>::v);
     add_vector_field("vstar", &Particle<T>::vstar);
     add_vector_field("Fv", &Particle<T>::Fv);
-    add_vector_field("F", &Particle<T>::F);
+    add_vector_field("acceleration", &Particle<T>::a);
 
     add_scalar_field("density", &Particle<T>::rho);
     add_scalar_field("reference_density", &Particle<T>::rho0);

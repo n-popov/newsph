@@ -98,8 +98,9 @@ void compute_hookes_deviatoric_stress_rate(mysph::Particle<double>& p) {
     p.acc_stress = 2 * p.G * epsilon + matmul(p.stress, transpose(omega)) + matmul(omega, transpose(p.stress));
 }
 
+// validated
 void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particle<double>*>& neighbors, const config::SPHParameters& sph_params) {
-    pi.F = {0.0, 0.0, 0.0};
+    pi.a = {0.0, 0.0, 0.0};
             
     for (auto ppj : neighbors) {
         const auto& pj = *ppj;
@@ -110,12 +111,10 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
         if (r > 1e-9 * sph_params.h) {
             mysph::vector3d DWIJ = mysph::grad_kernel(rij, sph_params.h);
             double WIJ = mysph::kernel(rij, sph_params.h);
-
             double pa = pi.p;
             double pb = pj.p;
             double rhoa = pi.rho;
             double rhob = pj.rho;
-
             double rhoa21 = 1.0 / (rhoa * rhoa);
             double rhob21 = 1.0 / (rhob * rhob);
 
@@ -125,7 +124,6 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
 
             // artificial stress tensor
             auto r_ab = pi.a_stress + pj.a_stress;
-
             auto wdeltap = mysph::kernel(mysph::vec3<double>{r, r, r}, sph_params.h);
             auto n_art_stress = 2; // TODO move to config
 
@@ -134,8 +132,7 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
             } else {
                 r_ab = {};
             }
-
-            pi.F = pi.F + pi.m * pj.m * matmul(DWIJ, sa * rhoa21 + sb * rhob21 + r_ab);
+            pi.a = pi.a + pj.m * matmul(DWIJ, sa * rhoa21 + sb * rhob21 + r_ab);
         }
     }
 }
