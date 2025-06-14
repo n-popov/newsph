@@ -78,21 +78,17 @@ void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) 
     p.a_stress = matmul(matmul(R_mat, rd), transpose(R_mat));
 }
 
-void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double dt, double artificial_stress_eps) {
-    // deviatoric strain rate
-    auto strain_rate = 0.5 * (p.v_grad + transpose(p.v_grad)) - (div(p.v_grad) / 3.) * mysph::SINGILAR9;
 
-    // Hooke's law (elastic trial stress)
-    p.stress = (2 * p.G * dt) * strain_rate;
+void continuity_equation(mysph::Particle<double>& p, const std::vector<mysph::Particle<double>*>& neighbors, double h) {
+    p.arho = 0.;
 
-    apply_von_mises_plasticity(p);
+    for(auto ppb: neighbors) {
+        auto& pb = *ppb;
 
-    if (artificial_stress_eps > 0) { 
-        compute_monaghan_artificial_stress(p, artificial_stress_eps);
-    } else {
-        p.a_stress = {};
+        p.arho += pb.m + (p.v - pb.v) * mysph::grad_kernel(p.r - pb.r, h);
     }
 }
+
 
 // validated
 void compute_hookes_deviatoric_stress_rate(mysph::Particle<double>& p) {
