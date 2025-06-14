@@ -24,6 +24,9 @@ public:
         double dx = config.sph_params.dx;
         double r_geom = proj_params.radius;
         double v_s = proj_params.velocity;
+
+        const auto& plate_params = config.plate_params;
+        auto y0 = plate_params.length / 2;
     
 
         for (double x = -r_geom; x <= r_geom; x += dx) {
@@ -32,7 +35,7 @@ public:
                     double d_sq = x*x + y*y + z*z;
                     if (d_sq <= r_geom*r_geom) {
                         mysph::Particle<double> p;
-                        p.r = {x - (r_geom + dx), y + r_geom, z};
+                        p.r = {x - (r_geom + dx), y + y0, z};
                         p.v = {v_s, 0.0, 0.0};
                         p.m = dx * dx * dx * props.density;
                         p.rho0 = props.density;

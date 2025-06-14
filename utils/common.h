@@ -95,6 +95,26 @@ std::array<T, 3> matmul(const std::array<T, 3>& vec, const std::array<T, 9>& mat
 }
 
 template<typename T>
+std::array<T, 9> matmul(const std::array<T, 9>& a, const std::array<T, 9>& b) {
+    return {
+        // First row
+        a[0]*b[0] + a[1]*b[3] + a[2]*b[6],
+        a[0]*b[1] + a[1]*b[4] + a[2]*b[7],
+        a[0]*b[2] + a[1]*b[5] + a[2]*b[8],
+        
+        // Second row
+        a[3]*b[0] + a[4]*b[3] + a[5]*b[6],
+        a[3]*b[1] + a[4]*b[4] + a[5]*b[7],
+        a[3]*b[2] + a[4]*b[5] + a[5]*b[8],
+        
+        // Third row
+        a[6]*b[0] + a[7]*b[3] + a[8]*b[6],
+        a[6]*b[1] + a[7]*b[4] + a[8]*b[7],
+        a[6]*b[2] + a[7]*b[5] + a[8]*b[8]
+    };
+}
+
+template<typename T>
 std::array<T, 3> vecmul(const std::array<T, 3>& lhs, const std::array<T, 3>& rhs) {
     return {
         lhs[1] * rhs[2] - lhs[2] * rhs[1], 

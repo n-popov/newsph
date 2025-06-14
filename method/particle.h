@@ -65,6 +65,7 @@ struct Particle {
     T J2 = T(0);         // Second invariant of stress deviator
 
     T ae = T(0); // energy change rate
+    vec9<T> acc_stress = {};
 
     // Fake particles
     bool is_fake = false;

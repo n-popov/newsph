@@ -5,6 +5,7 @@
 #include "../config/simulation_config.h"
 #include "../utils/helpers.h"
 
+// verified
 void compute_eos_stiffened_gas(
     mysph::Particle<double>& particle,
     const config::SimulationConfig& config
@@ -24,6 +25,7 @@ void compute_eos_stiffened_gas(
     particle.cs = std::sqrt(cs_squared);
 }
 
+// verified
 void compute_velocity_gradient(mysph::Particle<double>& pi,
                                const std::vector<mysph::Particle<double>*>& neighbors,
                                double h) { 
@@ -32,11 +34,12 @@ void compute_velocity_gradient(mysph::Particle<double>& pi,
     for (const auto ppj : neighbors) {
         const auto& pj = *ppj;
         auto rij = pi.r - pj.r;
-        auto vij = pi.v - pj.v; 
+        auto vji = pj.v - pi.v; 
 
-        pi.v_grad = pi.v_grad - (pj.m / pj.rho) * matmul(vij, mysph::grad_kernel(rij, h));
+        pi.v_grad = pi.v_grad + (pj.m / pj.rho) * matmul(vji, mysph::grad_kernel(rij, h));
     }
 }
+
 
 void apply_von_mises_plasticity(mysph::Particle<double>& p) {
     // Stress deviator second invariant J2
@@ -52,6 +55,12 @@ void apply_von_mises_plasticity(mysph::Particle<double>& p) {
 
 // Function to compute Monaghan Artificial Stress
 void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) {
+    if (eps <= 0.) {
+        p.a_stress = {};
+
+        return;
+    }
+
     double rhoi = p.rho;
     if (rhoi < 1e-9) {
         p.a_stress = {};
@@ -91,6 +100,13 @@ void compute_stress_rate_and_artificial_terms(mysph::Particle<double>& p, double
     } else {
         p.a_stress = {};
     }
+}
+
+void compute_hookes_deviatoric_stress_rate(mysph::Particle<double>& p) {
+    auto epsilon = 0.5 * (p.v_grad + transpose(p.v_grad)) - (div(p.v_grad) / 3.) * mysph::SINGILAR9;
+    auto omega = 0.5 * (p.v_grad - transpose(p.v_grad));
+
+    p.acc_stress = 2 * p.G * epsilon + matmul(p.stress, transpose(omega)) + matmul(omega, transpose(p.stress));
 }
 
 void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particle<double>*>& neighbors, const config::SPHParameters& sph_params) {

@@ -70,6 +70,8 @@ int main(int argc, char* argv[]) {
     double time = 0.0;
     
     std::filesystem::create_directory("output");
+
+    auto max_cf = 0.;
     
     while (time < sim_params.max_time) {
         std::cout << "Step " << step << ", Time: " << time << " s\n";
@@ -86,17 +88,21 @@ int main(int argc, char* argv[]) {
 
         parallelize(sim_params.parallelize, compute_neighbors, particles, sph_params.h);
 
-        parallelize(sim_params.parallelize, compute_correction_factor, particles, sph_params.h, sph_params.hdx);
+        parallelize(sim_params.parallelize, compute_correction_factor, particles, sph_params.h);
 
         if (step == 0) {
             std::string vtk_filename = "output/impact-0.vtp";
             write_particles_vtk(vtk_filename, particles);
+
+            for (auto& p: particles) {
+                max_cf = std::max(max_cf, p.cf);
+            }
         } else {
             parallelize(sim_params.parallelize, compute_density, particles, sph_params.h);
             
             // correct density
             for (auto& p: particles) {
-                p.rho /= p.cf;
+                p.rho /= std::min(p.cf, max_cf);
             }
         }
 
@@ -107,7 +113,9 @@ int main(int argc, char* argv[]) {
         parallelize(sim_params.parallelize, compute_velocity_gradient, particles, sph_params.h);
         
         for (auto& p : particles) {
-            compute_stress_rate_and_artificial_terms(p, sim_params.dt, 0.1);
+            compute_hookes_deviatoric_stress_rate(p);
+
+            compute_monaghan_artificial_stress(p, 0.1);
         }
 
         parallelize(sim_params.parallelize, compute_artificial_viscosity, particles, sph_params.h, 
@@ -131,6 +139,7 @@ int main(int argc, char* argv[]) {
         for (auto i = 0; i < particles.size(); i++) {
             next_particles[i].r = particles[i].r + particles[i].v * sim_params.dt;
             next_particles[i].e = particles[i].e + particles[i].ae * sim_params.dt;
+            next_particles[i].stress = particles[i].stress + particles[i].acc_stress * sim_params.dt;
         }
 
         if (step % sim_params.output_frequency == 0) {
