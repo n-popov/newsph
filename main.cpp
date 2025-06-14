@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
                 max_cf = std::max(max_cf, p.cf);
             }
         } else {
-            // parallelize(sim_params.parallelize, compute_density, particles, sph_params.h);
+            parallelize(sim_params.parallelize, compute_density, particles, sph_params.h);
             
             // correct density
             // for (auto& p: particles) {
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
             next_particles[i].r = particles[i].r + particles[i].v * sim_params.dt;
             next_particles[i].e = particles[i].e + particles[i].ae * sim_params.dt;
             next_particles[i].stress = particles[i].stress + particles[i].acc_stress * sim_params.dt;
-            next_particles[i].rho = particles[i].rho + particles[i].arho * sim_params.dt;
+            // next_particles[i].rho = particles[i].rho + particles[i].arho * sim_params.dt;
         }
 
         if (step % sim_params.output_frequency == 0) {
