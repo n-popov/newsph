@@ -90,10 +90,10 @@ void compute_artificial_viscosity(
             auto c_bar_ab = 0.5 * (pa.cs + pb.cs);
             auto rho_bar_ab = 0.5 * (pa.rho + pb.rho);
             if (std::abs(rho_bar_ab) < 1e-9) continue;
-            Pi_ab = pb.m * (-visc_alpha * c_bar_ab * phi_ab + visc_beta * phi_ab * phi_ab) / rho_bar_ab;
+            Pi_ab = (-visc_alpha * c_bar_ab * phi_ab + visc_beta * phi_ab * phi_ab) / rho_bar_ab;
         }
 
-        pa.Fv = pa.Fv - Pi_ab * pa.m * mysph::grad_kernel(r_ab, h);
+        pa.a = pa.a - Pi_ab * pb.m * mysph::grad_kernel(r_ab, h);
     }
 }
 
