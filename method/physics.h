@@ -125,10 +125,9 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
             // artificial stress tensor
             auto r_ab = pi.a_stress + pj.a_stress;
             auto wdeltap = mysph::kernel(mysph::vec3<double>{r, r, r}, sph_params.h, sph_params.kernel);
-            auto n_art_stress = 2; // TODO move to config
 
             if (wdeltap > 1e-9) {
-                r_ab = r_ab * std::pow(WIJ / wdeltap, n_art_stress);
+                r_ab = r_ab * std::pow(WIJ / wdeltap, sph_params.n_art_stress);
             } else {
                 r_ab = {};
             }

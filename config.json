@@ -39,7 +39,8 @@
       "avisc_eta": 0.1,
       "xsph_eps": 0.5,
       "kernel": "tutorial",
-      "eta_factor": 0.1
+      "eta_factor": 0.1,
+      "n_art_stress": 2
     },
     
     "projectile": {

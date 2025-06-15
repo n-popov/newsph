@@ -46,6 +46,7 @@ struct SPHParameters {
     double xsph_eps;
     Kernel kernel;
     double eta_factor;
+    double n_art_stress;
     
     void calculate_derived_properties() {
         h = dx * hdx;
@@ -154,6 +155,7 @@ private:
         sph_params.avisc_eta = sph["avisc_eta"];
         sph_params.xsph_eps = sph["xsph_eps"];
         sph_params.eta_factor = sph["eta_factor"];
+        sph_params.n_art_stress = sph["n_art_stress"];
         sph_params.calculate_derived_properties();
 
         if (sph["kernel"] == "tutorial") {
