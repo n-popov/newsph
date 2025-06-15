@@ -48,20 +48,59 @@ namespace {
         }
         return 0;
     }
+
+    template <class T>
+    double kernel_tutorial(T r, double h) {
+        return _kernel(r, h) * sigma3(h);
+    }
+
+    template <class T>
+    T grad_kernel_tutorial(T r, double h) {
+        auto den = h * abs(r);
+
+        if (den < 1e-12) return T();
+
+        return r * (_grad_kernel(r, h) * (sigma3(h)) / den);
+    }
+
+    double sigma_gaussian(double h) {
+        return 1 / (std::pow(std::numbers::pi, 1.5) * h * h * h);
+    }
+
+    double gaussian(vec3<double> r, double h) {
+        auto q = abs(r) / h;
+
+        if (q < 3) {
+            return sigma_gaussian(h) * std::exp(-q * q);
+        } else {
+            return 0.;
+        }
+    }
+
+    vec3<double> grad_gaussian(vec3<double> r, double h) {
+        auto q = abs(r) / h;
+        auto den = h * abs(r);
+
+        if (den < 1e-12) return {};
+
+        if (q < 3) {
+            return r * (sigma_gaussian(h) * (-2) * q * std::exp(-q * q) / den);
+        } else {
+            return {};
+        }
+    }
+
 };
 
-template <class T>
-double kernel(T r, double h) {
-    return _kernel(r, h) * sigma3(h);
+double kernel(vec3<double> r, double h) {
+    return kernel_tutorial(r, h);
+    // return gaussian(r, h);
 }
 
-template <class T>
-T grad_kernel(T r, double h) {
-    auto den = h * abs(r);
-
-    if (den == 0) return T();
-    
-    return r * (_grad_kernel(r, h) * (sigma3(h)) / den);
+vec3<double> grad_kernel(vec3<double> r, double h) {
+    return grad_kernel_tutorial(r, h);
+    // return grad_gaussian(r, h);
 }
+
 
 };
