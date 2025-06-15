@@ -104,6 +104,15 @@ int main(int argc, char* argv[]) {
             }
         } else {
             parallelize(sim_params.parallelize, compute_density, particles, sph_params);
+
+            // density selection
+            for (auto& p: particles) {
+                if (std::abs(p.rho_sph - p.rho) < std::abs(p.rho_cont - p.rho)) {
+                    p.rho = p.rho_sph;
+                } else {
+                    p.rho = p.rho_cont;
+                }
+            }
             
             // correct density
             // for (auto& p: particles) {
@@ -144,8 +153,10 @@ int main(int argc, char* argv[]) {
             next_particles[i].r = particles[i].r + particles[i].v * sim_params.dt;
             next_particles[i].e = particles[i].e + particles[i].ae * sim_params.dt;
             next_particles[i].stress = particles[i].stress + particles[i].acc_stress * sim_params.dt;
-            // next_particles[i].rho = particles[i].rho + particles[i].arho * sim_params.dt;
-        }
+            next_particles[i].rho_cont = particles[i].rho + particles[i].arho * sim_params.dt;
+
+            next_particles[i].rho = particles[i].rho;
+        } 
 
         if (step % sim_params.output_frequency == 0) {
             std::string vtk_filename = "output/impact-" + std::to_string(step + 1) + ".vtp";

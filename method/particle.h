@@ -75,6 +75,9 @@ struct Particle {
 
     std::vector<Particle<T>*> neighbors;
     std::optional<std::vector<Particle<T>*>*> external_neighbors;
+
+    T rho_sph = T(0);
+    T rho_cont = T(0);
 };
 
 }

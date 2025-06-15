@@ -44,10 +44,10 @@ void compute_density(
     const std::vector<Particle<double>*>& neighbors,
     const config::SPHParameters& sph_params
 ) {
-    pa.rho = 0.0;
+    pa.rho_sph = 0.0;
             
     for (auto ppb : neighbors) {
-        pa.rho += ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, sph_params.kernel);
+        pa.rho_sph += ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, sph_params.kernel);
     }
 }
 
