@@ -37,9 +37,10 @@
       "avisc_alpha": 1.0,
       "avisc_beta": 1.5,
       "avisc_eta": 0.1,
-      "xsph_eps": 0.5,
+      "xsph_eps": 0.0,
       "kernel": "tutorial",
       "eta_factor": 0.1,
+      "hs_factor": 10,
       "n_art_stress": 2
     },
     

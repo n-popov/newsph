@@ -75,6 +75,11 @@ int main(int argc, char* argv[]) {
     std::filesystem::create_directory("output");
 
     auto max_cf = 0.;
+    auto v_max_abs = 0.;
+
+    for (const auto& p: particles) {
+        v_max_abs = std::max(v_max_abs, abs(p.v));
+    }
     
     while (time < sim_params.max_time) {
         std::cout << "Step " << step << ", Time: " << time << " s\n";
@@ -113,11 +118,6 @@ int main(int argc, char* argv[]) {
                     p.rho = p.rho_cont;
                 }
             }
-            
-            // correct density
-            // for (auto& p: particles) {
-            //     p.rho /= std::min(p.cf, max_cf);
-            // }
         }
 
         for (auto& p : particles) {
@@ -140,11 +140,15 @@ int main(int argc, char* argv[]) {
         
         // forces
         for (auto i = 0; i < particles.size(); i++) {
-            particles[i].vstar = particles[i].v + particles[i].a * sim_params.dt + (particles[i].Fv) * (sim_params.dt / particles[i].m);
+            particles[i].vstar = particles[i].v + particles[i].a * sim_params.dt;
         }
 
         // correction
         for (auto i = 0; i < particles.size(); i++) {
+            // high-speed correction
+            if (abs(particles[i].vstar) > sph_params.hs_factor * v_max_abs) {
+                continue;
+            }
             particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], particles[i].neighbors, sph_params);
         }
 
