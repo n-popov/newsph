@@ -6,10 +6,10 @@
 void compute_neighbors(
     Particle<double>& pa,
     const std::vector<Particle<double>*>& particles,
-    double h
+    const config::SPHParameters& sph_params
 ) {
     for (auto j = 0; j < particles.size(); j++) {
-        if (mysph::kernel(pa.r - particles[j]->r, h) > 0.) {
+        if (mysph::kernel(pa.r - particles[j]->r, sph_params.h, sph_params.kernel) > 0.) {
             pa.neighbors.push_back(particles[j]);
         }
     }
@@ -18,8 +18,7 @@ void compute_neighbors(
 mysph::vec3<double> compute_xsph_corrected_velocities(
     const Particle<double>& pa,                     
     const std::vector<Particle<double>*>& neighbors,
-    double h,                                             
-    double xsph_eps                                       
+    const config::SPHParameters& sph_params                                     
 ) {
         mysph::vec3<double> xsph_sum_term = {0.0, 0.0, 0.0};
 
@@ -28,11 +27,11 @@ mysph::vec3<double> compute_xsph_corrected_velocities(
             auto v_ab = pa.vstar - pb.vstar;
             auto r_ab = pa.r - pb.r;
 
-            auto W_ab = mysph::kernel(r_ab, h);
+            auto W_ab = mysph::kernel(r_ab, sph_params.h, sph_params.kernel);
 
             if (pa.rho + pb.rho < 1e-9) continue;
             auto inv_rho_bar_ab = 2.0 / (pa.rho + pb.rho);
-            auto factor = -xsph_eps * pb.m * W_ab * inv_rho_bar_ab;
+            auto factor = -sph_params.xsph_eps * pb.m * W_ab * inv_rho_bar_ab;
     
             xsph_sum_term = xsph_sum_term + factor * v_ab;
         }
@@ -43,35 +42,34 @@ mysph::vec3<double> compute_xsph_corrected_velocities(
 void compute_density(
     Particle<double>& pa,
     const std::vector<Particle<double>*>& neighbors,
-    double h
+    const config::SPHParameters& sph_params
 ) {
     pa.rho = 0.0;
             
     for (auto ppb : neighbors) {
-        pa.rho += ppb->m * mysph::kernel(pa.r - ppb->r, h);
+        pa.rho += ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, sph_params.kernel);
     }
 }
 
 void compute_correction_factor(
     Particle<double>& pa,
     const std::vector<Particle<double>*>& neighbors,
-    double h
+    const config::SPHParameters& sph_params
 ) {
     pa.cf = 0.;
             
     for (auto ppb : neighbors) {
-        pa.cf += (ppb->m * mysph::kernel(pa.r - ppb->r, h)) / ppb->rho;
+        pa.cf += (ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, sph_params.kernel)) / ppb->rho;
     }
 }
 
 void compute_artificial_viscosity(
     Particle<double>& pa,
     const std::vector<Particle<double>*>& neighbors,
-    double h,
-    double visc_alpha,                                   
-    double visc_beta,                                    
-    double eta_factor = 0.1                              
+    const config::SPHParameters& sph_params                                  
 ) {
+    auto& eta_factor = sph_params.eta_factor;
+    auto& h = sph_params.h;
     const double eta_factor_sq = eta_factor * eta_factor;
 
     pa.Fv = {0.0, 0.0, 0.0};
@@ -90,10 +88,10 @@ void compute_artificial_viscosity(
             auto c_bar_ab = 0.5 * (pa.cs + pb.cs);
             auto rho_bar_ab = 0.5 * (pa.rho + pb.rho);
             if (std::abs(rho_bar_ab) < 1e-9) continue;
-            Pi_ab = (-visc_alpha * c_bar_ab * phi_ab + visc_beta * phi_ab * phi_ab) / rho_bar_ab;
+            Pi_ab = (-sph_params.avisc_alpha * c_bar_ab * phi_ab + sph_params.avisc_beta * phi_ab * phi_ab) / rho_bar_ab;
         }
 
-        pa.a = pa.a - Pi_ab * pb.m * mysph::grad_kernel(r_ab, h);
+        pa.a = pa.a - Pi_ab * pb.m * mysph::grad_kernel(r_ab, h, sph_params.kernel);
     }
 }
 

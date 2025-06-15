@@ -4,6 +4,8 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+#include "../method/kernel.h"
+
 namespace config {
 
 struct MaterialProperties {
@@ -42,6 +44,8 @@ struct SPHParameters {
     double avisc_beta;
     double avisc_eta;
     double xsph_eps;
+    Kernel kernel;
+    double eta_factor;
     
     void calculate_derived_properties() {
         h = dx * hdx;
@@ -149,7 +153,20 @@ private:
         sph_params.avisc_beta = sph["avisc_beta"];
         sph_params.avisc_eta = sph["avisc_eta"];
         sph_params.xsph_eps = sph["xsph_eps"];
+        sph_params.eta_factor = sph["eta_factor"];
         sph_params.calculate_derived_properties();
+
+        if (sph["kernel"] == "tutorial") {
+            sph_params.kernel = Kernel::TUTORIAL;
+        } else if (sph["kernel"] == "gaussian") {
+            sph_params.kernel = Kernel::GAUSSIAN;
+        } else if (sph["kernel"] == "cubic_spline") {
+            sph_params.kernel = Kernel::CUBIC_SPLINE;
+        } else if (sph["kernel"] == "wendland_quintic") {
+            sph_params.kernel = Kernel::WENDLAND_QUINTIC;
+        } else {
+            throw std::runtime_error("unspecified kernel");
+        }
     }
     
     void parse_projectile_parameters() {

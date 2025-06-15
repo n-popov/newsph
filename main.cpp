@@ -89,11 +89,11 @@ int main(int argc, char* argv[]) {
             p.neighbors = {};
         }
 
-        parallelize(sim_params.parallelize, compute_neighbors, particles, sph_params.h);
+        parallelize(sim_params.parallelize, compute_neighbors, particles, sph_params);
 
-        parallelize(sim_params.parallelize, compute_correction_factor, particles, sph_params.h);
+        parallelize(sim_params.parallelize, compute_correction_factor, particles, sph_params);
 
-        parallelize(sim_params.parallelize, continuity_equation, particles, sph_params.h);
+        parallelize(sim_params.parallelize, continuity_equation, particles, sph_params);
 
         if (step == 0) {
             std::string vtk_filename = "output/impact-0.vtp";
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
                 max_cf = std::max(max_cf, p.cf);
             }
         } else {
-            parallelize(sim_params.parallelize, compute_density, particles, sph_params.h);
+            parallelize(sim_params.parallelize, compute_density, particles, sph_params);
             
             // correct density
             // for (auto& p: particles) {
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
             compute_eos_stiffened_gas(p, config);
         }
 
-        parallelize(sim_params.parallelize, compute_velocity_gradient, particles, sph_params.h);
+        parallelize(sim_params.parallelize, compute_velocity_gradient, particles, sph_params);
         
         for (auto& p : particles) {
             compute_hookes_deviatoric_stress_rate(p);
@@ -123,8 +123,7 @@ int main(int argc, char* argv[]) {
             compute_monaghan_artificial_stress(p, 0.1);
         }
 
-        parallelize(sim_params.parallelize, compute_artificial_viscosity, particles, sph_params.h, 
-                sph_params.avisc_alpha, sph_params.avisc_beta, sph_params.avisc_eta);
+        parallelize(sim_params.parallelize, compute_artificial_viscosity, particles, sph_params);
 
         parallelize(sim_params.parallelize, compute_force, particles, sph_params);
 
@@ -137,7 +136,7 @@ int main(int argc, char* argv[]) {
 
         // correction
         for (auto i = 0; i < particles.size(); i++) {
-            particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], particles[i].neighbors, sph_params.h, sph_params.xsph_eps);
+            particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], particles[i].neighbors, sph_params);
         }
 
         // compute next

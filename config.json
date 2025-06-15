@@ -37,7 +37,9 @@
       "avisc_alpha": 1.0,
       "avisc_beta": 1.5,
       "avisc_eta": 0.1,
-      "xsph_eps": 0.5
+      "xsph_eps": 0.5,
+      "kernel": "tutorial",
+      "eta_factor": 0.1
     },
     
     "projectile": {

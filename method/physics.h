@@ -28,7 +28,7 @@ void compute_eos_stiffened_gas(
 // verified
 void compute_velocity_gradient(mysph::Particle<double>& pi,
                                const std::vector<mysph::Particle<double>*>& neighbors,
-                               double h) { 
+                               const config::SPHParameters& sph_params) { 
     pi.v_grad = {};
 
     for (const auto ppj : neighbors) {
@@ -36,7 +36,7 @@ void compute_velocity_gradient(mysph::Particle<double>& pi,
         auto rij = pi.r - pj.r;
         auto vji = pj.v - pi.v; 
 
-        pi.v_grad = pi.v_grad + (pj.m / pj.rho) * matmul(vji, mysph::grad_kernel(rij, h));
+        pi.v_grad = pi.v_grad + (pj.m / pj.rho) * matmul(vji, mysph::grad_kernel(rij, sph_params.h, sph_params.kernel));
     }
 }
 
@@ -79,13 +79,13 @@ void compute_monaghan_artificial_stress(mysph::Particle<double>& p, double eps) 
 }
 
 
-void continuity_equation(mysph::Particle<double>& p, const std::vector<mysph::Particle<double>*>& neighbors, double h) {
+void continuity_equation(mysph::Particle<double>& p, const std::vector<mysph::Particle<double>*>& neighbors, const config::SPHParameters& sph_params) {
     p.arho = 0.;
 
     for(auto ppb: neighbors) {
         auto& pb = *ppb;
 
-        p.arho += pb.m + (p.v - pb.v) * mysph::grad_kernel(p.r - pb.r, h);
+        p.arho += pb.m + (p.v - pb.v) * mysph::grad_kernel(p.r - pb.r, sph_params.h, sph_params.kernel);
     }
 }
 
@@ -109,8 +109,8 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
         double r = mysph::abs(rij);
 
         if (r > 1e-9 * sph_params.h) {
-            mysph::vector3d DWIJ = mysph::grad_kernel(rij, sph_params.h);
-            double WIJ = mysph::kernel(rij, sph_params.h);
+            mysph::vector3d DWIJ = mysph::grad_kernel(rij, sph_params.h, sph_params.kernel);
+            double WIJ = mysph::kernel(rij, sph_params.h, sph_params.kernel);
             double pa = pi.p;
             double pb = pj.p;
             double rhoa = pi.rho;
@@ -124,7 +124,7 @@ void compute_force(mysph::Particle<double>& pi, const std::vector<mysph::Particl
 
             // artificial stress tensor
             auto r_ab = pi.a_stress + pj.a_stress;
-            auto wdeltap = mysph::kernel(mysph::vec3<double>{r, r, r}, sph_params.h);
+            auto wdeltap = mysph::kernel(mysph::vec3<double>{r, r, r}, sph_params.h, sph_params.kernel);
             auto n_art_stress = 2; // TODO move to config
 
             if (wdeltap > 1e-9) {
