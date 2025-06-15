@@ -4,8 +4,9 @@
       "dt": 1e-8,
       "output_frequency": 1,
       "write_full_evaluation_data": false,
-      "write_integral_data": true,
-      "debug_plate_only": false,
+      "write_integral_data": true, 
+      "use_plate": true,
+      "use_projectile": true,
       "parallelize": true
     },
     

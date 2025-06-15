@@ -44,15 +44,18 @@ int main(int argc, char* argv[]) {
     std::vector<mysph::Particle<double>> projectile_particles;
 
     if (gmsh_params.is_enabled) {
-        plate_particles = geometry::PlateGenerator::create_plate_from_gmsh(config);
-
-        if (!sim_params.debug_plate_only) {
+        if (sim_params.use_plate){
+            plate_particles = geometry::PlateGenerator::create_plate_from_gmsh(config);
+        }
+        if (sim_params.use_projectile) {
             projectile_particles = geometry::ProjectileGenerator::create_projectile_from_gmsh(config);
         }
     } else {
-        plate_particles = geometry::PlateGenerator::create_plate(config);
+        if (sim_params.use_plate) {
+            plate_particles = geometry::PlateGenerator::create_plate(config);
+        }
 
-        if (!sim_params.debug_plate_only) {
+        if (sim_params.use_projectile) {
             projectile_particles = geometry::ProjectileGenerator::create_projectile(config);
         }
     } 

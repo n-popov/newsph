@@ -29,7 +29,8 @@ struct SimulationParameters {
     int output_frequency;
     bool write_full_evaluation_data;
     bool write_integral_data;
-    bool debug_plate_only;
+    bool use_plate;
+    bool use_projectile;
     bool parallelize;
 };
 
@@ -135,7 +136,8 @@ private:
         simulation_params.output_frequency = sim["output_frequency"];
         simulation_params.write_full_evaluation_data = sim["write_full_evaluation_data"];
         simulation_params.write_integral_data = sim["write_integral_data"];
-        simulation_params.debug_plate_only = sim["debug_plate_only"];
+        simulation_params.use_plate = sim["use_plate"];
+        simulation_params.use_projectile = sim["use_projectile"];
         simulation_params.parallelize = sim["parallelize"];
     }
     
