@@ -47,7 +47,7 @@ void compute_density(
     pa.rho_sph = 0.0;
             
     for (auto ppb : neighbors) {
-        pa.rho_sph += ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, sph_params.kernel);
+        pa.rho_sph += ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, Kernel::TUTORIAL);
     }
 }
 
@@ -59,7 +59,7 @@ void compute_correction_factor(
     pa.cf = 0.;
             
     for (auto ppb : neighbors) {
-        pa.cf += (ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, sph_params.kernel)) / ppb->rho;
+        pa.cf += (ppb->m * mysph::kernel(pa.r - ppb->r, sph_params.h, Kernel::TUTORIAL)) / ppb->rho;
     }
 }
 

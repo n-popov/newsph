@@ -85,7 +85,7 @@ void continuity_equation(mysph::Particle<double>& p, const std::vector<mysph::Pa
     for(auto ppb: neighbors) {
         auto& pb = *ppb;
 
-        p.arho += pb.m + (p.v - pb.v) * mysph::grad_kernel(p.r - pb.r, sph_params.h, sph_params.kernel);
+        p.arho += pb.m + (p.v - pb.v) * mysph::grad_kernel(p.r - pb.r, sph_params.h, Kernel::TUTORIAL);
     }
 }
 

@@ -1,6 +1,6 @@
 {
     "simulation": {
-      "max_time": 1e-6,
+      "max_time": 2e-6,
       "dt": 1e-8,
       "output_frequency": 1,
       "write_full_evaluation_data": false,
