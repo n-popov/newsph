@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
         for (auto i = 0; i < particles.size(); i++) {
             // high-speed correction
             if (abs(particles[i].vstar) > sph_params.hs_factor * v_max_abs) {
-                continue;
+                particles[i].vstar = particles[i].vstar * (v_max_abs / abs(particles[i].vstar));
             }
             particles[i].v = particles[i].vstar + compute_xsph_corrected_velocities(particles[i], particles[i].neighbors, sph_params);
         }

@@ -54,7 +54,7 @@
       "length": 0.005,
       "width": 0.005,
       "thickness": 0.0005,
-      "material": "aluminum"
+      "material": "steel"
     },
 
     "gmsh": {

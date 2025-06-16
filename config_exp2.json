@@ -1,11 +1,12 @@
 {
     "simulation": {
-      "max_time": 2e-6,
+      "max_time": 2.5e-6,
       "dt": 1e-8,
       "output_frequency": 1,
       "write_full_evaluation_data": false,
-      "write_integral_data": true,
-      "debug_plate_only": false,
+      "write_integral_data": true, 
+      "use_plate": true,
+      "use_projectile": true,
       "parallelize": true
     },
     
@@ -32,16 +33,20 @@
     
     "sph_parameters": {
       "hdx": 1.3,
-      "dx": 0.0002,
+      "dx": 0.0001,
       "avisc_alpha": 1.0,
       "avisc_beta": 1.5,
       "avisc_eta": 0.1,
-      "xsph_eps": 0.5
+      "xsph_eps": 0.0,
+      "kernel": "tutorial",
+      "eta_factor": 0.1,
+      "hs_factor": 10,
+      "n_art_stress": 2
     },
     
     "projectile": {
       "radius": 0.001,
-      "velocity": 3100.0,
+      "velocity": 2200.0,
       "material": "steel"
     },
     

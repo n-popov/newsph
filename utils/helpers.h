@@ -455,7 +455,7 @@ void parallelize(bool is_enabled,
         return;
     }
 
-    const auto num_threads = 4u;
+    const auto num_threads = std::thread::hardware_concurrency();
     const auto num_particles = particles.size();
     const auto chunk_size = (num_particles + num_threads - 1) / num_threads;
 
